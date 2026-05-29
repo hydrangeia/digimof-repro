@@ -2,6 +2,8 @@
 
 本文档记录在 `H:\dongfx\tools\project\digimof` 中复现 DigiMOF 代码的过程。源码来自 `DigiMOF-database-master-main-main.zip`，论文为 `digimof-a-database-of-metal-organic-framework-synthesis-information-generated-via-text-mining.pdf`。
 
+如果只是想日常使用，不想看完整复现过程，先看 `PERSONAL_USAGE_README.md`。
+
 ## 1. 项目做了什么
 
 DigiMOF 的目标是从 MOF 文献正文中自动抽取合成相关信息，并整理成结构化数据库。论文中描述的整体流程是：
@@ -294,13 +296,19 @@ URL 模式做了两件事：
 conda run -n digimof-repro python download_article_html.py https://pmc.ncbi.nlm.nih.gov/articles/PMC9085643/ -o downloaded_articles --overwrite
 ```
 
-也可以准备一个 URL 列表文件，每行一个 URL，`#` 开头的行会被忽略：
+也可以准备一个 URL/DOI 列表文件，每行一个 URL 或 DOI，`#` 开头的行会被忽略：
 
 ```powershell
 conda run -n digimof-repro python download_article_html.py --url-file urls.txt -o downloaded_articles
 ```
 
-下载器会优先直连，失败后再走系统代理；输出包括网页文件和 `downloaded_articles/manifest.jsonl`。下载后的 HTML 可以直接作为本地输入解析：
+如果手里是一批 DOI，也可以单独使用 DOI 文件：
+
+```powershell
+conda run -n digimof-repro python download_article_html.py --doi-file dois.txt -o downloaded_articles
+```
+
+下载器会把裸 DOI 自动转成 `https://doi.org/...`，优先直连，失败后再走系统代理；输出包括网页文件和 `downloaded_articles/manifest.jsonl`。下载后的 HTML 可以直接作为本地输入解析：
 
 ```powershell
 conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o sample_outputs\framework_miner_downloaded_articles.jsonl --mof-only --max-chars 3000

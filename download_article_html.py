@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 
 REQUEST_HEADERS = {"User-Agent": "framework-miner/0.1 (+https://pmc.ncbi.nlm.nih.gov/)"}
+DOI_RE = re.compile(r"^(?:doi:\s*)?(10\.\d{4,9}/\S+)$", flags=re.I)
 RESERVED_NAMES = {
     "CON",
     "PRN",
@@ -37,6 +38,21 @@ RESERVED_NAMES = {
     "LPT8",
     "LPT9",
 }
+
+
+def normalize_identifier(identifier: str) -> str:
+    value = identifier.strip()
+    if value.lower().startswith(("http://", "https://")):
+        return value
+    if value.lower().startswith(("doi.org/", "dx.doi.org/")):
+        return "https://{}".format(value)
+
+    match = DOI_RE.match(value)
+    if match:
+        doi = match.group(1).strip().rstrip(".,;")
+        return "https://doi.org/{}".format(doi)
+
+    raise ValueError("not a URL or DOI: {}".format(identifier))
 
 
 def fetch_url(url: str) -> requests.Response:
@@ -106,39 +122,46 @@ def unique_path(path: Path, overwrite: bool) -> Path:
     raise RuntimeError("Could not choose a unique path for {}".format(path))
 
 
-def iter_urls(args: argparse.Namespace) -> list[str]:
-    urls = list(args.urls)
+def iter_identifiers(args: argparse.Namespace) -> list[tuple[str, str]]:
+    raw_values = list(args.identifiers)
     if args.url_file:
         for line in args.url_file.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith("#"):
-                urls.append(line)
-    return urls
+                raw_values.append(line)
+    if args.doi_file:
+        for line in args.doi_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                raw_values.append(line)
+    return [(value, normalize_identifier(value)) for value in raw_values]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Download article HTML/PDF files for local DigiMOF reproduction.")
-    parser.add_argument("urls", nargs="*", help="Article URLs to download.")
-    parser.add_argument("--url-file", type=Path, help="UTF-8 text file with one URL per line.")
+    parser.add_argument("identifiers", nargs="*", help="Article URLs or DOI strings to download.")
+    parser.add_argument("--url-file", type=Path, help="UTF-8 text file with one URL or DOI per line.")
+    parser.add_argument("--doi-file", type=Path, help="UTF-8 text file with one DOI per line.")
     parser.add_argument("-o", "--output-dir", type=Path, default=Path("downloaded_articles"))
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files instead of adding a suffix.")
     args = parser.parse_args()
 
-    urls = iter_urls(args)
-    if not urls:
-        parser.error("provide at least one URL or --url-file")
+    identifiers = iter_identifiers(args)
+    if not identifiers:
+        parser.error("provide at least one URL/DOI, --url-file, or --doi-file")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = args.output_dir / "manifest.jsonl"
     written = []
     with manifest_path.open("a", encoding="utf-8") as manifest:
-        for index, url in enumerate(urls, start=1):
+        for index, (raw_identifier, url) in enumerate(identifiers, start=1):
             response = fetch_url(url)
             content_type = response.headers.get("content-type", "")
             filename = filename_for_url(url, response.content, content_type, index)
             output_path = unique_path(args.output_dir / filename, overwrite=args.overwrite)
             output_path.write_bytes(response.content)
             record = {
+                "input": raw_identifier,
                 "url": url,
                 "final_url": response.url,
                 "path": str(output_path),
