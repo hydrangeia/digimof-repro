@@ -96,6 +96,20 @@ COF_NAME_PATTERNS = [
     r"\b2DCCOF\d+\b",
     r"\b3DCCOF\d+\b",
 ]
+MONOMER_STOP_WORDS = {
+    "argon",
+    "nitrogen",
+    "vacuum",
+    "water",
+    "toluene",
+    "ethanol",
+    "methanol",
+    "mesitylene",
+    "dioxane",
+    "1,4-dioxane",
+    "K2CO3",
+    "Pd(PPh3)4",
+}
 
 
 def _append_unique(values: list[str], value: str) -> None:
@@ -127,6 +141,13 @@ def is_cof_candidate_text(text: str) -> bool:
 def clean_cof_name(name: str) -> str:
     name = " ".join(name.split())
     return name.strip(" \t\r\n,.;:()[]")
+
+
+def clean_monomer_name(name: str) -> str:
+    name = re.sub(r"\b(?:the|a|an)\b", " ", name, flags=re.I)
+    name = re.sub(r"\s+", " ", name)
+    name = name.strip(" \t\r\n,.;:()[]")
+    return name
 
 
 def heuristic_cof_names(text: str) -> list[str]:
@@ -164,6 +185,51 @@ def _time_values(text: str) -> list[str]:
     ]
 
 
+def _split_monomer_phrase(phrase: str) -> list[str]:
+    phrase = re.sub(r"\b(?:in|at|under|using|with|by)\b.*$", "", phrase, flags=re.I)
+    phrase = re.sub(r"\s+", " ", phrase)
+    parts = re.split(r"\s*(?:/|\+|\band\b|\bwith\b)\s*", phrase, flags=re.I)
+    names: list[str] = []
+    for part in parts:
+        name = clean_monomer_name(part)
+        if not name or len(name) < 2:
+            continue
+        if name in MONOMER_STOP_WORDS:
+            continue
+        if re.fullmatch(r"\d+(?:\.\d+)?\s*(?:°C|℃|K|h|hours?|d|days?|months?)", name, flags=re.I):
+            continue
+        _append_unique(names, name)
+    return names
+
+
+def _append_monomer(monomers: list[dict], name: str, role: str) -> None:
+    item = {"monomer": name, "role": role}
+    if item not in monomers:
+        monomers.append(item)
+
+
+def heuristic_cof_monomers(text: str) -> list[dict]:
+    monomers: list[dict] = []
+    patterns = [
+        (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
+        (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|affording|yielding)\b|[.;]|$)", "from"),
+        (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;,]+)", "between"),
+        (r"\bcondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;,]+)", "condensation"),
+        (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;,]+)", "polycondensation"),
+    ]
+
+    for pattern, role in patterns:
+        for match in re.finditer(pattern, text, flags=re.I):
+            if len(match.groups()) == 2:
+                for group in match.groups():
+                    for name in _split_monomer_phrase(group):
+                        _append_monomer(monomers, name, role)
+            else:
+                for name in _split_monomer_phrase(match.group(1)):
+                    _append_monomer(monomers, name, role)
+    return monomers
+
+
 def heuristic_cof_fields(text: str) -> dict | None:
     if not is_cof_candidate_text(text):
         return None
@@ -180,6 +246,10 @@ def heuristic_cof_fields(text: str) -> dict | None:
     linkages = _find_terms(text, COF_LINKAGE_TERMS)
     if linkages:
         fields["linkages"] = [{"linkage": linkage} for linkage in linkages]
+
+    monomers = heuristic_cof_monomers(text)
+    if monomers:
+        fields["monomers"] = monomers
 
     catalysts = _find_terms(text, COF_CATALYST_TERMS)
     if catalysts:

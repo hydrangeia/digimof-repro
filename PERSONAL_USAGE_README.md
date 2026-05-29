@@ -243,6 +243,7 @@ COF 不建议硬塞进 DigiMOF 原规则里。COF 的关键词、反应、linkag
 - COF 名称，例如 `2DCCOF1`、`2DCCOF2`、`PyTTA-TPA-COF`。
 - linkage/键型，例如 `C-C bonded`、`imine-linked`。
 - 聚合/合成路线，例如 `Suzuki polymerization`、`Schiff base polycondensation`。
+- monomer 候选，例如 `aryl diboronic ester`、`porphyrin monomer`、`PyTTA`、`TPA`。
 - 催化剂、碱、溶剂、界面。
 - 温度和时间。
 
@@ -261,6 +262,10 @@ conda run -n digimof-repro python -m framework_miner.cli sample_inputs\cof_suzuk
     "names": ["2DCCOF1", "2DCCOF2"],
     "polymerization_routes": [{"route": "Suzuki polymerization"}],
     "linkages": [{"linkage": "C-C bonded"}],
+    "monomers": [
+      {"monomer": "aryl diboronic ester", "role": "from"},
+      {"monomer": "porphyrin monomer", "role": "from"}
+    ],
     "catalysts": [{"catalyst": "Pd(PPh3)4"}],
     "bases": [{"base": "K2CO3"}],
     "interfaces": [{"interface": "water/toluene interface"}],
@@ -283,3 +288,56 @@ conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o 
 ```
 
 目前 COF 还是第一版 heuristic。它适合帮我们快速筛实验句子和抽取骨架，不适合当作最终数据库直接信任。后面最值得继续加的是 monomer 识别和更多 linkage/route 词表。
+
+### COF monomer 字段怎么理解
+
+`monomers` 里每个元素长这样：
+
+```json
+{"monomer": "aryl diboronic ester", "role": "from"}
+```
+
+其中：
+
+- `monomer` 是从原文里截出来的候选单体名。
+- `role` 表示它是怎么被抓到的。
+
+现在有这些 `role`：
+
+- `from`：来自 `synthesized from A and B`。
+- `between`：来自 `formed between A and B`。
+- `condensation`：来自 `condensation of A with B`。
+- `polycondensation`：来自 `polycondensation of A with B`。
+- `explicit`：来自 `monomers were A and B` 或 `monomers: A and B`。
+
+这个字段现在故意保守：它不做复杂化学命名标准化，只保留原文候选片段。原因是 COF 单体名经常很长，括号、逗号、缩写很多，太早标准化容易把信息弄坏。后面如果要做设计数据库，再单独加一层 monomer normalization。
+
+几个已经测试过的句型：
+
+```text
+2DCCOF1 and 2DCCOF2 were synthesized from aryl diboronic ester and porphyrin monomer by Suzuki polymerization.
+```
+
+会抽到：
+
+```json
+[
+  {"monomer": "aryl diboronic ester", "role": "from"},
+  {"monomer": "porphyrin monomer", "role": "from"}
+]
+```
+
+```text
+PyTTA-TPA-COF was obtained by Schiff base polycondensation of PyTTA with TPA.
+```
+
+会抽到：
+
+```json
+[
+  {"monomer": "PyTTA", "role": "polycondensation"},
+  {"monomer": "TPA", "role": "polycondensation"}
+]
+```
+
+目前不建议把 `monomers` 当成 100% 正确结果。更好的用法是：先用它筛选和定位，再看 `evidence_texts` 核对原文。

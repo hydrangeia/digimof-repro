@@ -1,10 +1,16 @@
-from framework_miner.cof import heuristic_cof_fields, heuristic_cof_names, is_cof_candidate_text
+from framework_miner.cof import (
+    heuristic_cof_fields,
+    heuristic_cof_monomers,
+    heuristic_cof_names,
+    is_cof_candidate_text,
+)
 from framework_miner.legacy_digimof import merge_items, parse_html_text
 
 
 SUZUKI_COF_TEXT = (
     "C-C bonded two-dimensional conjugated covalent organic framework films "
-    "2DCCOF1 and 2DCCOF2 were synthesized by Suzuki polymerization at a "
+    "2DCCOF1 and 2DCCOF2 were synthesized from aryl diboronic ester and "
+    "porphyrin monomer by Suzuki polymerization at a "
     "water/toluene interface using Pd(PPh3)4 and K2CO3 under argon at 2 °C "
     "for one month."
 )
@@ -27,6 +33,8 @@ def test_heuristic_cof_fields_suzuki_film():
     assert fields["names"] == ["2DCCOF1", "2DCCOF2"]
     assert {"route": "Suzuki polymerization"} in fields["polymerization_routes"]
     assert fields["linkages"] == [{"linkage": "C-C bonded"}]
+    assert {"monomer": "aryl diboronic ester", "role": "from"} in fields["monomers"]
+    assert {"monomer": "porphyrin monomer", "role": "from"} in fields["monomers"]
     assert {"catalyst": "Pd(PPh3)4"} in fields["catalysts"]
     assert {"base": "K2CO3"} in fields["bases"]
     assert {"interface": "water/toluene interface"} in fields["interfaces"]
@@ -34,6 +42,20 @@ def test_heuristic_cof_fields_suzuki_film():
     assert {"solvent": "water"} in fields["solvents"]
     assert fields["temperature"] == ["2 °C"]
     assert fields["time"] == ["one month"]
+
+
+def test_heuristic_cof_monomers_from_and_between_patterns():
+    from_text = "COF-1 was synthesized from 1,3,5-triformylbenzene and p-phenylenediamine."
+    between_text = "A COF was formed between TFP and TAPB under solvothermal conditions."
+
+    assert heuristic_cof_monomers(from_text) == [
+        {"monomer": "1,3,5-triformylbenzene", "role": "from"},
+        {"monomer": "p-phenylenediamine", "role": "from"},
+    ]
+    assert heuristic_cof_monomers(between_text) == [
+        {"monomer": "TFP", "role": "between"},
+        {"monomer": "TAPB", "role": "between"},
+    ]
 
 
 def test_parse_html_text_cof_framework():
@@ -53,7 +75,8 @@ def test_parse_html_text_cof_framework():
 def test_heuristic_cof_fields_imine_route():
     text = (
         "An imine-linked PyTTA-TPA-COF was obtained by Schiff base "
-        "polycondensation in mesitylene and 1,4-dioxane at 120 °C for 72 h."
+        "polycondensation of PyTTA with TPA in mesitylene and 1,4-dioxane "
+        "at 120 °C for 72 h."
     )
 
     fields = heuristic_cof_fields(text)
@@ -62,6 +85,8 @@ def test_heuristic_cof_fields_imine_route():
     assert fields["names"] == ["PyTTA-TPA-COF"]
     assert {"linkage": "imine-linked"} in fields["linkages"]
     assert {"route": "Schiff base polycondensation"} in fields["polymerization_routes"]
+    assert {"monomer": "PyTTA", "role": "polycondensation"} in fields["monomers"]
+    assert {"monomer": "TPA", "role": "polycondensation"} in fields["monomers"]
     assert {"solvent": "mesitylene"} in fields["solvents"]
     assert {"solvent": "1,4-dioxane"} in fields["solvents"]
     assert fields["temperature"] == ["120 °C"]

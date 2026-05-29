@@ -76,6 +76,7 @@ COF 不建议复用 `MOF_data`，而是继续用 `framework_miner` 的通用字�
 - `2DCCOF1`、`2DCCOF2`、`PyTTA-TPA-COF` 等名称模式。
 - `Suzuki polymerization`、`Schiff base polycondensation`。
 - `C-C bonded`、`imine-linked`。
+- monomer 候选抽取：`synthesized from A and B`、`formed between A and B`、`condensation of A with B`、`polycondensation of A with B`、`monomers: A and B`。
 - `Pd(PPh3)4`、`K2CO3`、常见溶剂和 `water/toluene interface`。
 - 温度和时间，如 `2 °C`、`one month`、`120 °C`、`72 h`。
 
@@ -85,7 +86,7 @@ COF 不建议复用 `MOF_data`，而是继续用 `framework_miner` 的通用字�
 conda run -n digimof-repro python -m framework_miner.cli sample_inputs\cof_suzuki.html -o sample_outputs\framework_miner_cof_suzuki.jsonl --framework cof --max-chars 3000
 ```
 
-该命令输出 1 条 COF 记录，包含 `2DCCOF1`、`2DCCOF2`、`Suzuki polymerization`、`C-C bonded`、`Pd(PPh3)4`、`K2CO3`、`water/toluene interface`、`2 °C` 和 `one month`。
+该命令输出 1 条 COF 记录，包含 `2DCCOF1`、`2DCCOF2`、`aryl diboronic ester`、`porphyrin monomer`、`Suzuki polymerization`、`C-C bonded`、`Pd(PPh3)4`、`K2CO3`、`water/toluene interface`、`2 °C` 和 `one month`。
 
 ## 5. 下一轮验证队列
 
