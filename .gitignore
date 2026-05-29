@@ -1,0 +1,26 @@
+# Python/cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# IDE settings
+.idea/
+**/.idea/
+
+# Local model/data downloads
+cde-data/
+downloaded_articles/
+
+# Generated extraction outputs
+sample_outputs/*
+!sample_outputs/.gitkeep
+
+# Archives and temporary files
+*.zip
+*.pdf
+*.tmp
+*.log
+
+# Local editor/system files
+.DS_Store
+Thumbs.db

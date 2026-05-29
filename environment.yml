@@ -1,0 +1,21 @@
+name: digimof-repro
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - appdirs
+  - beautifulsoup4
+  - cssselect
+  - dawg
+  - lxml
+  - nltk
+  - pandas
+  - pdfminer.six
+  - pytest
+  - python-crfsuite
+  - pyyaml
+  - requests
+  - selenium=3.141.0
+  - six
