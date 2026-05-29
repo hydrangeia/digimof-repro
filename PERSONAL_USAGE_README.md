@@ -234,4 +234,52 @@ git push
 2. 多找几篇实验 MOF 文章做回归样例。
 3. 再单独设计 COF 的 schema 和规则。
 
-COF 不建议硬塞进 DigiMOF 原规则里。COF 的关键词、反应、linkage、monomer、catalyst、interface 和 MOF 不一样，后面应该作为 `framework_type = "COF"` 的新分支来做。
+COF 不建议硬塞进 DigiMOF 原规则里。COF 的关键词、反应、linkage、monomer、catalyst、interface 和 MOF 不一样，应该作为 `framework_type = "COF"` 的新分支来做。
+
+## 13. 现在怎么试 COF
+
+现在已经有第一版很轻量的 COF 规则层，主要抓：
+
+- COF 名称，例如 `2DCCOF1`、`2DCCOF2`、`PyTTA-TPA-COF`。
+- linkage/键型，例如 `C-C bonded`、`imine-linked`。
+- 聚合/合成路线，例如 `Suzuki polymerization`、`Schiff base polycondensation`。
+- 催化剂、碱、溶剂、界面。
+- 温度和时间。
+
+跑内置 COF 小样例：
+
+```powershell
+conda run -n digimof-repro python -m framework_miner.cli sample_inputs\cof_suzuki.html -o sample_outputs\framework_miner_cof_suzuki.jsonl --framework cof --max-chars 3000
+```
+
+输出会像这样：
+
+```json
+{
+  "framework_type": "COF",
+  "fields": {
+    "names": ["2DCCOF1", "2DCCOF2"],
+    "polymerization_routes": [{"route": "Suzuki polymerization"}],
+    "linkages": [{"linkage": "C-C bonded"}],
+    "catalysts": [{"catalyst": "Pd(PPh3)4"}],
+    "bases": [{"base": "K2CO3"}],
+    "interfaces": [{"interface": "water/toluene interface"}],
+    "temperature": ["2 °C"],
+    "time": ["one month"]
+  }
+}
+```
+
+如果要跑自己下载的 COF 网页：
+
+```powershell
+conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o sample_outputs\cof_results.jsonl --framework cof --max-chars 5000
+```
+
+如果一个文件夹里 MOF 和 COF 都有，可以跑：
+
+```powershell
+conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o sample_outputs\framework_results.jsonl --framework all --framework-only --max-chars 5000
+```
+
+目前 COF 还是第一版 heuristic。它适合帮我们快速筛实验句子和抽取骨架，不适合当作最终数据库直接信任。后面最值得继续加的是 monomer 识别和更多 linkage/route 词表。

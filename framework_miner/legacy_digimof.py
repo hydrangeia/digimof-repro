@@ -14,6 +14,8 @@ import requests
 from bs4 import BeautifulSoup
 from pdfminer.high_level import extract_text
 
+from .cof import heuristic_cof_fields, is_cof_candidate_text, normalized_cof_item
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ROOT = PROJECT_ROOT / "DigiMOF-database-master-main-main" / "chemdataextractor_MOFs"
@@ -90,6 +92,14 @@ def is_mof_candidate_text(text: str) -> bool:
     return any(term in lower for term in MOF_PARAGRAPH_TERMS)
 
 
+def is_candidate_text(text: str, framework: str = "mof") -> bool:
+    if framework == "mof":
+        return is_mof_candidate_text(text)
+    if framework == "cof":
+        return is_cof_candidate_text(text)
+    return is_mof_candidate_text(text) or is_cof_candidate_text(text)
+
+
 def record_names(record: dict) -> list[str]:
     return [name for name in record.get("names", []) if isinstance(name, str)]
 
@@ -133,6 +143,7 @@ def digimof_shape(source_id: str, record: dict) -> dict:
 
 
 def normalized_item(source: dict, evidence_text: str, record: dict) -> dict:
+    passes_mof_filter = is_mof_record(record)
     item = {
         "schema_version": "framework_miner/0.1",
         "framework_type": "MOF",
@@ -140,7 +151,8 @@ def normalized_item(source: dict, evidence_text: str, record: dict) -> dict:
         "evidence_text": evidence_text,
         "fields": compact_fields(record),
         "raw_record": record,
-        "passes_mof_filter": is_mof_record(record),
+        "passes_mof_filter": passes_mof_filter,
+        "passes_framework_filter": passes_mof_filter,
     }
     if item["passes_mof_filter"]:
         item.update(digimof_shape(source.get("id", ""), record))
@@ -178,6 +190,7 @@ def normalized_heuristic_item(source: dict, evidence_text: str, fields: dict) ->
         "evidence_text": evidence_text,
         "fields": fields,
         "passes_mof_filter": True,
+        "passes_framework_filter": True,
         "extraction_method": "paragraph_heuristic",
     }
     item.update(digimof_shape_from_fields(source.get("id", ""), fields))
@@ -197,7 +210,7 @@ def merge_items(items: Iterable[dict]) -> Iterable[dict]:
     for item in items:
         fields = item.get("fields", {})
         names = tuple(fields.get("names", []))
-        key = (item["source"].get("id"), names)
+        key = (item["source"].get("id"), item.get("framework_type"), names)
         if key not in merged:
             new_item = dict(item)
             raw_record = new_item.pop("raw_record", None)
@@ -210,7 +223,10 @@ def merge_items(items: Iterable[dict]) -> Iterable[dict]:
             continue
 
         target = merged[key]
-        target["passes_mof_filter"] = target.get("passes_mof_filter") or item.get("passes_mof_filter")
+        target["passes_mof_filter"] = bool(target.get("passes_mof_filter") or item.get("passes_mof_filter"))
+        target["passes_framework_filter"] = bool(
+            target.get("passes_framework_filter") or item.get("passes_framework_filter")
+        )
         evidence_text = item.get("evidence_text")
         if evidence_text and evidence_text not in target.setdefault("evidence_texts", []):
             target["evidence_texts"].append(evidence_text)
@@ -232,32 +248,58 @@ def merge_items(items: Iterable[dict]) -> Iterable[dict]:
         yield item
 
 
-def records_from_document(doc: Document, source: dict) -> Iterable[dict]:
+def records_from_document(doc: Document, source: dict, framework: str = "mof") -> Iterable[dict]:
     for element_index, element in enumerate(doc.elements):
         if not hasattr(element, "records"):
             continue
         evidence_text = str(element)
-        records = element.records
-        serialized = records.serialize() if hasattr(records, "serialize") else records
-        for record in serialized:
-            if record:
+
+        if framework in {"mof", "all"}:
+            records = element.records
+            serialized = records.serialize() if hasattr(records, "serialize") else records
+            for record in serialized:
+                if record:
+                    enriched_source = dict(source)
+                    enriched_source["element_index"] = element_index
+                    yield normalized_item(enriched_source, evidence_text, record)
+            heuristic_fields = heuristic_mof_fields(evidence_text)
+            if heuristic_fields:
                 enriched_source = dict(source)
                 enriched_source["element_index"] = element_index
-                yield normalized_item(enriched_source, evidence_text, record)
-        heuristic_fields = heuristic_mof_fields(evidence_text)
-        if heuristic_fields:
+                yield normalized_heuristic_item(enriched_source, evidence_text, heuristic_fields)
+
+        if framework in {"cof", "all"}:
+            cof_fields = heuristic_cof_fields(evidence_text)
+            if cof_fields:
+                enriched_source = dict(source)
+                enriched_source["element_index"] = element_index
+                yield normalized_cof_item(enriched_source, evidence_text, cof_fields)
+
+
+def records_from_text(text: str, source: dict, framework: str = "mof") -> Iterable[dict]:
+    if framework in {"mof", "all"}:
+        doc = Document(Paragraph(text))
+        yield from records_from_document(doc, source, framework=framework)
+    elif framework == "cof":
+        cof_fields = heuristic_cof_fields(text)
+        if cof_fields:
             enriched_source = dict(source)
-            enriched_source["element_index"] = element_index
-            yield normalized_heuristic_item(enriched_source, evidence_text, heuristic_fields)
+            enriched_source["element_index"] = 0
+            yield normalized_cof_item(enriched_source, text, cof_fields)
 
 
-def parse_structured_bytes(content: bytes, source_id: str, source_kind: str) -> Iterable[dict]:
+def parse_structured_bytes(content: bytes, source_id: str, source_kind: str, framework: str = "mof") -> Iterable[dict]:
     doc = Document.from_file(io.BytesIO(content), fname=source_id)
     source = {"id": source_id, "kind": source_kind}
-    yield from records_from_document(doc, source)
+    yield from records_from_document(doc, source, framework=framework)
 
 
-def parse_html_text(content: bytes, source_id: str, max_chars: int | None = None) -> Iterable[dict]:
+def parse_html_text(
+    content: bytes,
+    source_id: str,
+    max_chars: int | None = None,
+    framework: str = "mof",
+) -> Iterable[dict]:
     soup = BeautifulSoup(content, "html.parser")
     for element in soup(["script", "style", "nav", "footer", "header", "aside"]):
         element.decompose()
@@ -271,15 +313,14 @@ def parse_html_text(content: bytes, source_id: str, max_chars: int | None = None
     used_chars = 0
     source = {"id": source_id, "kind": "url_html"}
     for paragraph_index, paragraph in enumerate(paragraphs):
-        if not is_mof_candidate_text(paragraph):
+        if not is_candidate_text(paragraph, framework=framework):
             continue
         if max_chars and used_chars >= max_chars:
             break
         if max_chars and used_chars + len(paragraph) > max_chars:
             paragraph = paragraph[: max_chars - used_chars]
         used_chars += len(paragraph)
-        doc = Document(Paragraph(paragraph))
-        for item in records_from_document(doc, source):
+        for item in records_from_text(paragraph, source, framework=framework):
             item["source"]["paragraph_index"] = paragraph_index
             yield item
 
@@ -289,28 +330,40 @@ def parse_pdf_path(
     pages: int | None = None,
     max_chars: int | None = None,
     source_id: str | None = None,
+    framework: str = "mof",
 ) -> Iterable[dict]:
     page_numbers = range(pages) if pages else None
     text = extract_text(str(path), page_numbers=page_numbers)
     source = {"id": source_id or str(path), "kind": "pdf"}
     for paragraph_index, paragraph in enumerate(split_paragraphs(text, max_chars=max_chars)):
-        doc = Document(Paragraph(paragraph))
-        for item in records_from_document(doc, source):
+        if not is_candidate_text(paragraph, framework=framework):
+            continue
+        for item in records_from_text(paragraph, source, framework=framework):
             item["source"]["paragraph_index"] = paragraph_index
             yield item
 
 
-def parse_local_path(path: Path, pages: int | None = None, max_chars: int | None = None) -> Iterable[dict]:
+def parse_local_path(
+    path: Path,
+    pages: int | None = None,
+    max_chars: int | None = None,
+    framework: str = "mof",
+) -> Iterable[dict]:
     suffix = path.suffix.lower()
     if suffix == ".pdf":
-        yield from parse_pdf_path(path, pages=pages, max_chars=max_chars)
+        yield from parse_pdf_path(path, pages=pages, max_chars=max_chars, framework=framework)
     elif suffix in {".html", ".htm"}:
-        yield from parse_html_text(path.read_bytes(), str(path), max_chars=max_chars)
+        yield from parse_html_text(path.read_bytes(), str(path), max_chars=max_chars, framework=framework)
     else:
-        yield from parse_structured_bytes(path.read_bytes(), str(path), suffix.lstrip(".") or "file")
+        yield from parse_structured_bytes(path.read_bytes(), str(path), suffix.lstrip(".") or "file", framework=framework)
 
 
-def parse_url(url: str, pages: int | None = None, max_chars: int | None = None) -> Iterable[dict]:
+def parse_url(
+    url: str,
+    pages: int | None = None,
+    max_chars: int | None = None,
+    framework: str = "mof",
+) -> Iterable[dict]:
     errors: list[requests.RequestException] = []
     response = None
     for trust_env in (False, True):
@@ -333,19 +386,26 @@ def parse_url(url: str, pages: int | None = None, max_chars: int | None = None) 
             handle.write(response.content)
             temp_path = Path(handle.name)
         try:
-            yield from parse_pdf_path(temp_path, pages=pages, max_chars=max_chars, source_id=url)
+            yield from parse_pdf_path(temp_path, pages=pages, max_chars=max_chars, source_id=url, framework=framework)
         finally:
             temp_path.unlink(missing_ok=True)
     else:
-        yield from parse_html_text(response.content, url, max_chars=max_chars)
+        yield from parse_html_text(response.content, url, max_chars=max_chars, framework=framework)
 
 
-def write_jsonl(items: Iterable[dict], output: Path, mof_only: bool = False) -> int:
+def write_jsonl(
+    items: Iterable[dict],
+    output: Path,
+    mof_only: bool = False,
+    framework_only: bool = False,
+) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     with output.open("w", encoding="utf-8") as handle:
         for item in items:
             if mof_only and not item.get("passes_mof_filter"):
+                continue
+            if framework_only and not (item.get("passes_mof_filter") or item.get("passes_framework_filter")):
                 continue
             handle.write(json.dumps(item, ensure_ascii=False) + "\n")
             count += 1
