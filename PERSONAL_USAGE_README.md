@@ -183,7 +183,7 @@ conda run -n digimof-repro pytest tests -q
 现在应该看到类似：
 
 ```text
-16 passed
+23 passed
 ```
 
 如果只是旧 ChemDataExtractor 的 warning，一般不用管。
@@ -341,3 +341,49 @@ PyTTA-TPA-COF was obtained by Schiff base polycondensation of PyTTA with TPA.
 ```
 
 目前不建议把 `monomers` 当成 100% 正确结果。更好的用法是：先用它筛选和定位，再看 `evidence_texts` 核对原文。
+
+## 14. 怎么判断它是不是真的变准了
+
+现在加了一个很小的 benchmark：
+
+```text
+benchmark/gold_cases.jsonl
+evaluate_framework_miner.py
+```
+
+它的目的不是追求数量，而是守住几个核心合成字段：
+
+- MOF：材料名、合成路线、topology、linker。
+- COF：材料名、polymerization route、linkage、monomer、catalyst/base、interface、temperature、time。
+
+运行：
+
+```powershell
+conda run -n digimof-repro python evaluate_framework_miner.py
+```
+
+当前应该看到：
+
+```text
+cases: 4/4 passed
+field recall: 26/26
+```
+
+它还会生成：
+
+```text
+benchmark/results.json
+benchmark/results.md
+```
+
+怎么理解：
+
+- `cases` 是样例级别，通过表示这一条文献片段的预期字段都命中了。
+- `field recall` 是字段级别，例如 26/26 表示 26 个期望字段都抽到了。
+- 如果某个字段漏了，`missing` 里会列出来。
+
+为什么做这个：
+
+我们现在更重视“少而准”。每次加规则前后都跑 benchmark，可以避免为了多抽一点东西，反而把原来已经准的核心字段弄坏。
+
+后面真正产品化时，应该继续往 `benchmark/gold_cases.jsonl` 里加真实开放文献的短片段和人工预期字段。每加一种 COF 合成路线，比如 Knoevenagel、boronate ester、hydrazone，都先补一个 gold case，再改规则。

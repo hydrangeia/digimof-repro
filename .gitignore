@@ -14,6 +14,7 @@ downloaded_articles/
 # Generated extraction outputs
 sample_outputs/*
 !sample_outputs/.gitkeep
+benchmark/results.*
 
 # Archives and temporary files
 *.zip
