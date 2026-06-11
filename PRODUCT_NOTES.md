@@ -54,24 +54,25 @@ COF 当前优先字段：
 
 ```powershell
 conda run -n digimof-repro python evaluate_framework_miner.py
-conda run -n digimof-repro pytest tests -q
+conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytest_tmp
 ```
 
 当前目标结果：
 
 ```text
-cases: 4/4 passed
-field recall: 26/26
-23 passed
+cases: 8/8 passed
+field recall: 64/64
+27 passed
 ```
 
 ## 下一步建议
 
 短期最值得做：
 
-1. 每类 COF 合成路线各加 1 个 gold case：
+1. 把已经覆盖的 COF 合成路线换成真实开放文献片段继续校准：
    - Suzuki polymerization
    - Schiff base polycondensation
+   - Schiff-base condensation / beta-ketoenamine
    - Knoevenagel condensation
    - boronate ester condensation
    - hydrazone formation

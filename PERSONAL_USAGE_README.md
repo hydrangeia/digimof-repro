@@ -177,16 +177,18 @@ conda run -n digimof-repro python -m framework_miner.cli https://pmc.ncbi.nlm.ni
 改代码后跑：
 
 ```powershell
-conda run -n digimof-repro pytest tests -q
+conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytest_tmp
 ```
 
 现在应该看到类似：
 
 ```text
-23 passed
+27 passed
 ```
 
 如果只是旧 ChemDataExtractor 的 warning，一般不用管。
+
+这里加 `--basetemp .pytest_tmp` 是为了避开 Windows 系统临时目录偶发的权限问题；`.pytest_tmp/` 已经在 `.gitignore` 里。
 
 ## 10. GitHub 怎么理解
 
@@ -241,11 +243,11 @@ COF 不建议硬塞进 DigiMOF 原规则里。COF 的关键词、反应、linkag
 现在已经有第一版很轻量的 COF 规则层，主要抓：
 
 - COF 名称，例如 `2DCCOF1`、`2DCCOF2`、`PyTTA-TPA-COF`。
-- linkage/键型，例如 `C-C bonded`、`imine-linked`。
-- 聚合/合成路线，例如 `Suzuki polymerization`、`Schiff base polycondensation`。
-- monomer 候选，例如 `aryl diboronic ester`、`porphyrin monomer`、`PyTTA`、`TPA`。
+- linkage/键型，例如 `C-C bonded`、`imine-linked`、`hydrazone-linked`、`boronate ester`、`olefin-linked`、`beta-ketoenamine-linked`。
+- 聚合/合成路线，例如 `Suzuki polymerization`、`Schiff base polycondensation`、`hydrazone formation`、`boronate ester condensation`、`Knoevenagel condensation`、`Schiff-base condensation`。
+- monomer 候选，例如 `aryl diboronic ester`、`porphyrin monomer`、`PyTTA`、`TPA`，也支持带多个逗号的长单体名。
 - 催化剂、碱、溶剂、界面。
-- 温度和时间。
+- 温度和时间，包括 `room temperature`、`ambient temperature`、`overnight` 和 `three days` 这类文字表达。
 
 跑内置 COF 小样例：
 
@@ -287,7 +289,7 @@ conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o 
 conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o sample_outputs\framework_results.jsonl --framework all --framework-only --max-chars 5000
 ```
 
-目前 COF 还是第一版 heuristic。它适合帮我们快速筛实验句子和抽取骨架，不适合当作最终数据库直接信任。后面最值得继续加的是 monomer 识别和更多 linkage/route 词表。
+目前 COF 还是 heuristic parser。它适合帮我们快速筛实验句子和抽取骨架，不适合把每个字段都当作最终数据库直接信任。现在已经覆盖 Suzuki、imine/Schiff-base、hydrazone、boronate ester、Knoevenagel 和 beta-ketoenamine 这几类核心合成骨架；后面最值得继续加的是真实开放文献样例、monomer normalization 和错误报告。
 
 ### COF monomer 字段怎么理解
 
@@ -365,8 +367,8 @@ conda run -n digimof-repro python evaluate_framework_miner.py
 当前应该看到：
 
 ```text
-cases: 4/4 passed
-field recall: 26/26
+cases: 8/8 passed
+field recall: 64/64
 ```
 
 它还会生成：
@@ -379,7 +381,7 @@ benchmark/results.md
 怎么理解：
 
 - `cases` 是样例级别，通过表示这一条文献片段的预期字段都命中了。
-- `field recall` 是字段级别，例如 26/26 表示 26 个期望字段都抽到了。
+- `field recall` 是字段级别，例如 64/64 表示 64 个期望字段都抽到了。
 - 如果某个字段漏了，`missing` 里会列出来。
 
 为什么做这个：

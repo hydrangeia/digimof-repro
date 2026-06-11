@@ -325,7 +325,7 @@ conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o 
 conda run -n digimof-repro python -m framework_miner.cli sample_inputs\cof_suzuki.html -o sample_outputs\framework_miner_cof_suzuki.jsonl --framework cof --max-chars 3000
 ```
 
-本次已验证该命令可输出 1 条 COF 记录，包含 `2DCCOF1`、`2DCCOF2`、`aryl diboronic ester`、`porphyrin monomer`、`Suzuki polymerization`、`C-C bonded`、`Pd(PPh3)4`、`K2CO3`、`water/toluene interface`、`2 °C` 和 `one month`。COF 当前是第一版 heuristic parser，定位是先抓实验骨架，后续再扩展 monomer normalization、linkage 和性质字段。
+本次已验证该命令可输出 1 条 COF 记录，包含 `2DCCOF1`、`2DCCOF2`、`aryl diboronic ester`、`porphyrin monomer`、`Suzuki polymerization`、`C-C bonded`、`Pd(PPh3)4`、`K2CO3`、`water/toluene interface`、`2 °C` 和 `one month`。COF heuristic parser 当前定位是先抓实验骨架；除了 Suzuki 和 imine/Schiff-base 之外，测试和 benchmark 已覆盖 hydrazone formation、boronate ester condensation、Knoevenagel condensation、beta-ketoenamine-linked COF、room temperature、overnight 以及带逗号的长单体名。
 
 ## 10. 版本管理建议
 
@@ -423,8 +423,8 @@ conda run -n digimof-repro python -c "import pandas as pd; df=pd.read_json(r'H:\
 - 运行最小 HTML 样例并生成 `sample_outputs/ntu105_demo.json`。
 - 新增 `framework_miner` 外壳，并验证本地 HTML 样例可输出合并后的规范 JSONL。
 - 新增 `download_article_html.py`，验证 `PMC9085643` 可下载为本地 HTML 并再次解析成功。
-- 新增第一版 `framework_miner/cof.py`，通过 `--framework cof` 抽取 COF 名称、monomer 候选、linkage、聚合路线、催化剂、碱、溶剂、界面、温度和时间。
-- 新增并执行测试，当前 22 条测试通过，覆盖本地 NTU-105 集成抽取、网页候选段落过滤、公式型 MOF 名称、`metal–organic` / `metal organic` 写法、无 `raw_record` 合并兼容、材料级去重、DOI 规范化和 COF heuristic 抽取。
+- 新增第一版 `framework_miner/cof.py` 并继续扩展，通过 `--framework cof` 抽取 COF 名称、monomer 候选、linkage、聚合路线、催化剂、碱、溶剂、界面、温度和时间。
+- 新增并执行测试，当前 27 条测试通过，覆盖本地 NTU-105 集成抽取、网页候选段落过滤、公式型 MOF 名称、`metal–organic` / `metal organic` 写法、无 `raw_record` 合并兼容、材料级去重、DOI 规范化、COF heuristic 抽取，以及 hydrazone、boronate ester、Knoevenagel 和 beta-ketoenamine COF 合成骨架。
 - 增加 PDF 辅助脚本并用本地 DigiMOF 论文 PDF 跑通 1 页示例，生成 `sample_outputs/digimof_paper_pdf_demo.jsonl`。
 - 用 PMC9085643 MOF 网页验证 URL 合并模式可运行，生成 `sample_outputs/framework_miner_url_pmc9085643.jsonl`，输出 1 条去重后的 Ca-MOF 记录。
 - 从本地论文核对了 DigiMOF 的方法和数据规模描述。

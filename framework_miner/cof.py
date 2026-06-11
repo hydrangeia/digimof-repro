@@ -15,15 +15,26 @@ COF_PARAGRAPH_TERMS = [
     "knoevenagel",
     "boronate ester",
     "imine",
+    "hydrazone",
+    "beta-ketoenamine",
+    "β-ketoenamine",
+    "olefin",
+    "vinylene",
 ]
 
 COF_ROUTE_TERMS = [
     "Suzuki polymerization",
     "Suzuki coupling",
+    "Schiff base condensation",
     "Schiff base polycondensation",
+    "Schiff-base condensation",
     "Schiff-base polycondensation",
     "Knoevenagel condensation",
+    "Knoevenagel polycondensation",
     "boronate ester condensation",
+    "boronic acid condensation",
+    "hydrazone formation",
+    "hydrazone condensation",
     "solvothermal",
     "ionothermal",
     "mechanochemical",
@@ -42,8 +53,13 @@ COF_LINKAGE_TERMS = [
     "sp2c",
     "imine-linked",
     "hydrazone-linked",
+    "olefin-linked",
+    "vinylene-linked",
     "boronate ester",
+    "boroxine",
+    "beta-ketoenamine-linked",
     "beta-ketoenamine",
+    "β-ketoenamine-linked",
     "β-ketoenamine",
     "triazine",
 ]
@@ -64,6 +80,7 @@ COF_CATALYST_TERMS = [
     "Sc(OTf)3",
     "p-toluenesulfonic acid",
     "acetic acid",
+    "trifluoroacetic acid",
 ]
 
 COF_BASE_TERMS = [
@@ -72,6 +89,7 @@ COF_BASE_TERMS = [
     "Cs2CO3",
     "triethylamine",
     "DIPEA",
+    "piperidine",
 ]
 
 COF_SOLVENT_TERMS = [
@@ -84,12 +102,17 @@ COF_SOLVENT_TERMS = [
     "1,4-dioxane",
     "n-butanol",
     "o-dichlorobenzene",
+    "1,2-dichlorobenzene",
+    "o-DCB",
     "DMF",
     "DMAc",
+    "THF",
+    "acetonitrile",
     "chloroform",
 ]
 
 COF_NAME_PATTERNS = [
+    r"\b[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+){1,4}\s+COF\b",
     r"\b(?:[A-Za-z0-9]+[-_]){1,5}COF[A-Za-z0-9-]*\b",
     r"\b[A-Za-z0-9]*COF[A-Za-z0-9-]*\b",
     r"\bCOF-\d+[A-Za-z0-9-]*\b",
@@ -110,6 +133,7 @@ MONOMER_STOP_WORDS = {
     "K2CO3",
     "Pd(PPh3)4",
 }
+MONOMER_STOP_WORDS_LOWER = {word.lower() for word in MONOMER_STOP_WORDS}
 
 
 def _append_unique(values: list[str], value: str) -> None:
@@ -168,25 +192,34 @@ def heuristic_cof_names(text: str) -> list[str]:
 
 
 def _temperature_values(text: str) -> list[str]:
-    return [
-        " ".join(match.group(0).split())
-        for match in re.finditer(r"\b-?\d+(?:\.\d+)?\s*(?:°C|℃|K)\b", text)
-    ]
+    values: list[str] = []
+    for match in re.finditer(r"\b-?\d+(?:\.\d+)?\s*(?:°C|℃|K)\b", text):
+        _append_unique(values, " ".join(match.group(0).split()))
+    for match in re.finditer(r"\b(?:room|ambient)\s+temperature\b|\bat\s+RT\b|\bRT\b", text, flags=re.I):
+        value = re.sub(r"^at\s+", "", " ".join(match.group(0).split()), flags=re.I)
+        _append_unique(values, value)
+    return values
 
 
 def _time_values(text: str) -> list[str]:
-    return [
-        " ".join(match.group(0).split())
-        for match in re.finditer(
-            r"\b\d+(?:\.\d+)?\s*(?:min|minutes?|h|hours?|d|days?|months?)\b|\bone month\b",
-            text,
-            flags=re.I,
-        )
-    ]
+    values: list[str] = []
+    number_words = "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve"
+    pattern = (
+        r"\b(?:\d+(?:\.\d+)?|{})\s*"
+        r"(?:min|minutes?|h|hours?|d|days?|weeks?|months?)\b|\bovernight\b"
+    ).format(number_words)
+    for match in re.finditer(pattern, text, flags=re.I):
+        _append_unique(values, " ".join(match.group(0).split()))
+    return values
 
 
 def _split_monomer_phrase(phrase: str) -> list[str]:
-    phrase = re.sub(r"\b(?:in|at|under|using|with|by)\b.*$", "", phrase, flags=re.I)
+    phrase = re.sub(
+        r"\b(?:in|at|under|using|with|by|through|via|to|for|affording|yielding)\b.*$",
+        "",
+        phrase,
+        flags=re.I,
+    )
     phrase = re.sub(r"\s+", " ", phrase)
     parts = re.split(r"\s*(?:/|\+|\band\b|\bwith\b)\s*", phrase, flags=re.I)
     names: list[str] = []
@@ -194,7 +227,7 @@ def _split_monomer_phrase(phrase: str) -> list[str]:
         name = clean_monomer_name(part)
         if not name or len(name) < 2:
             continue
-        if name in MONOMER_STOP_WORDS:
+        if name.lower() in MONOMER_STOP_WORDS_LOWER:
             continue
         if re.fullmatch(r"\d+(?:\.\d+)?\s*(?:°C|℃|K|h|hours?|d|days?|months?)", name, flags=re.I):
             continue
@@ -212,10 +245,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
     monomers: list[dict] = []
     patterns = [
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
-        (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|affording|yielding)\b|[.;]|$)", "from"),
-        (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;,]+)", "between"),
-        (r"\bcondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;,]+)", "condensation"),
-        (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;,]+)", "polycondensation"),
+        (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "from"),
+        (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "between"),
+        (r"\bcondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
+        (r"\bcondensing\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
+        (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
     ]
 
     for pattern, role in patterns:

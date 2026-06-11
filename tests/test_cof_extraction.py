@@ -91,3 +91,91 @@ def test_heuristic_cof_fields_imine_route():
     assert {"solvent": "1,4-dioxane"} in fields["solvents"]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_hydrazone_room_temperature():
+    text = (
+        "A hydrazone-linked TFPPy-DETHz-COF was synthesized by hydrazone "
+        "formation from 1,3,6,8-tetrakis(4-formylphenyl)pyrene and "
+        "2,5-diethoxyterephthalohydrazide in mesitylene/dioxane with "
+        "acetic acid at room temperature for three days."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TFPPy-DETHz-COF"]
+    assert {"route": "hydrazone formation"} in fields["polymerization_routes"]
+    assert {"linkage": "hydrazone-linked"} in fields["linkages"]
+    assert {"monomer": "1,3,6,8-tetrakis(4-formylphenyl)pyrene", "role": "from"} in fields["monomers"]
+    assert {"monomer": "2,5-diethoxyterephthalohydrazide", "role": "from"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["room temperature"]
+    assert fields["time"] == ["three days"]
+
+
+def test_heuristic_cof_fields_boronate_ester_route():
+    text = (
+        "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "
+        "and 2,3,6,7,10,11-hexahydroxytriphenylene through boronate ester "
+        "condensation in mesitylene and 1,4-dioxane at 85 °C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-5"]
+    assert {"route": "boronate ester condensation"} in fields["polymerization_routes"]
+    assert {"linkage": "boronate ester"} in fields["linkages"]
+    assert {"monomer": "1,4-benzenediboronic acid", "role": "from"} in fields["monomers"]
+    assert {"monomer": "2,3,6,7,10,11-hexahydroxytriphenylene", "role": "from"} in fields["monomers"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "1,4-dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["85 °C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_knoevenagel_olefin_route():
+    text = (
+        "An olefin-linked COF-V was prepared by Knoevenagel condensation of "
+        "1,3,5-triformylbenzene with 2,4,6-trimethyl-1,3,5-triazine using "
+        "piperidine in dioxane at 120 °C for 3 days."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-V"]
+    assert {"route": "Knoevenagel condensation"} in fields["polymerization_routes"]
+    assert {"linkage": "olefin-linked"} in fields["linkages"]
+    assert {"monomer": "1,3,5-triformylbenzene", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "2,4,6-trimethyl-1,3,5-triazine", "role": "condensation"} in fields["monomers"]
+    assert {"base": "piperidine"} in fields["bases"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["3 days"]
+
+
+def test_heuristic_cof_fields_beta_ketoenamine_overnight():
+    text = (
+        "A beta-ketoenamine-linked TpPa-1 COF was synthesized by "
+        "Schiff-base condensation of 1,3,5-triformylphloroglucinol with "
+        "p-phenylenediamine in mesitylene/dioxane with 6 M acetic acid "
+        "at 120 °C for overnight."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TpPa-1 COF"]
+    assert {"route": "Schiff-base condensation"} in fields["polymerization_routes"]
+    assert {"linkage": "beta-ketoenamine-linked"} in fields["linkages"]
+    assert {"monomer": "1,3,5-triformylphloroglucinol", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "p-phenylenediamine", "role": "condensation"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["overnight"]
