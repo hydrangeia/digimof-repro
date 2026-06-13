@@ -17,7 +17,7 @@ COF_PARAGRAPH_TERMS = [
     "imine",
     "hydrazone",
     "beta-ketoenamine",
-    "β-ketoenamine",
+    "\u03b2-ketoenamine",
     "olefin",
     "vinylene",
 ]
@@ -45,6 +45,11 @@ COF_ROUTE_TERMS = [
     "on-water surface",
 ]
 
+COF_ROUTE_ALIASES = [
+    (r"\bvapou?r[\s-]+induced\s+conversion\b", "vapor induced conversion"),
+    (r"\bVIC\b", "vapor induced conversion"),
+]
+
 COF_LINKAGE_TERMS = [
     "C-C bonded",
     "C-C bond",
@@ -59,8 +64,8 @@ COF_LINKAGE_TERMS = [
     "boroxine",
     "beta-ketoenamine-linked",
     "beta-ketoenamine",
-    "β-ketoenamine-linked",
-    "β-ketoenamine",
+    "\u03b2-ketoenamine-linked",
+    "\u03b2-ketoenamine",
     "triazine",
 ]
 
@@ -73,6 +78,26 @@ COF_INTERFACE_TERMS = [
     "water/toluene interface",
 ]
 
+COF_SUBSTRATE_TERMS = [
+    "ITO glass",
+    "indium tin oxide glass",
+    "FTO glass",
+    "fluorine-doped tin oxide glass",
+    "glass substrate",
+    "quartz substrate",
+    "silicon wafer",
+    "copper foil",
+    "nickel foam",
+    "carbon cloth",
+]
+
+COF_SUBSTRATE_ALIASES = [
+    (r"indium\s+tin\s+oxide(?:\s*\(ITO\))?(?:\s+glass|\s+substrate)?", "ITO glass"),
+    (r"ITO(?:\s+glass|\s+substrate)?", "ITO glass"),
+    (r"fluorine[\s-]+doped\s+tin\s+oxide(?:\s*\(FTO\))?(?:\s+glass|\s+substrate)?", "FTO glass"),
+    (r"FTO(?:\s+glass|\s+substrate)?", "FTO glass"),
+]
+
 COF_CATALYST_TERMS = [
     "Pd(PPh3)4",
     "tetrakis(triphenylphosphine)palladium",
@@ -83,13 +108,25 @@ COF_CATALYST_TERMS = [
     "trifluoroacetic acid",
 ]
 
+COF_CATALYST_ALIASES = [
+    (r"\b(?:AcOH|HOAc)\b", "acetic acid"),
+    (r"\bTFA\b", "trifluoroacetic acid"),
+    (r"\bp-?TsOH\b", "p-toluenesulfonic acid"),
+]
+
 COF_BASE_TERMS = [
     "K2CO3",
     "Na2CO3",
     "Cs2CO3",
     "triethylamine",
+    "diisopropylethylamine",
     "DIPEA",
     "piperidine",
+]
+
+COF_BASE_ALIASES = [
+    (r"\b(?:Et3N|NEt3|TEA)\b", "triethylamine"),
+    (r"\bH[u\u00fc]nig'?s?\s+base\b", "DIPEA"),
 ]
 
 COF_SOLVENT_TERMS = [
@@ -109,6 +146,29 @@ COF_SOLVENT_TERMS = [
     "THF",
     "acetonitrile",
     "chloroform",
+    "dichloromethane",
+    "DCM",
+]
+
+COF_SOLVENT_ALIASES = [
+    (r"\bMeCN\b", "acetonitrile"),
+    (r"\bCH3CN\b", "acetonitrile"),
+    (r"\bMeOH\b", "methanol"),
+    (r"\bEtOH\b", "ethanol"),
+    (r"\bo-?DCB\b", "1,2-dichlorobenzene"),
+    (r"\bn-?BuOH\b", "n-butanol"),
+    (r"\b(?:DCM|CH2Cl2)\b", "dichloromethane"),
+    (r"\btetrahydrofuran\b", "THF"),
+    (r"\bN,N-dimethylformamide\b", "DMF"),
+    (r"\bN,N-dimethylacetamide\b", "DMAc"),
+]
+
+COF_ATMOSPHERE_TERMS = [
+    "argon",
+    "nitrogen",
+    "air",
+    "vacuum",
+    "inert atmosphere",
 ]
 
 COF_NAME_PATTERNS = [
@@ -119,6 +179,19 @@ COF_NAME_PATTERNS = [
     r"\b2DCCOF\d+\b",
     r"\b3DCCOF\d+\b",
 ]
+
+TEMPERATURE_UNIT_VARIANTS = (
+    r"\u00b0\s*C",
+    r"\u00ba\s*C",
+    r"\u2103",
+    r"\u63b3C",
+    r"\u93ba\u77ef",
+    r"\u0431\u0443C",
+    r"\u0431\u0446",
+    r"\u9229\u5104K",
+    r"K",
+)
+
 MONOMER_STOP_WORDS = {
     "argon",
     "nitrogen",
@@ -134,11 +207,80 @@ MONOMER_STOP_WORDS = {
     "Pd(PPh3)4",
 }
 MONOMER_STOP_WORDS_LOWER = {word.lower() for word in MONOMER_STOP_WORDS}
+TEMPERATURE_UNIT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS))
+CLEANSIUS_VARIANT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS[:-1]))
+ATMOSPHERE_LABEL_PATTERN = r"argon|nitrogen|air|vacuum|Ar|N2|N₂"
+
+
+def _normalize_atmosphere_value(value: str) -> str:
+    normalized = value.strip().lower()
+    return {
+        "ar": "argon",
+        "n2": "nitrogen",
+        "n₂": "nitrogen",
+    }.get(normalized, normalized)
+
+
+def _normalize_substrate_value(value: str) -> str:
+    normalized = " ".join(value.split())
+    return {
+        "indium tin oxide glass": "ITO glass",
+        "indium tin oxide substrate": "ITO glass",
+        "indium tin oxide (ito)": "ITO glass",
+        "indium tin oxide (ito) substrate": "ITO glass",
+        "ito": "ITO glass",
+        "ito substrate": "ITO glass",
+        "fluorine-doped tin oxide glass": "FTO glass",
+        "fluorine-doped tin oxide substrate": "FTO glass",
+        "fluorine-doped tin oxide (fto)": "FTO glass",
+        "fluorine-doped tin oxide (fto) substrate": "FTO glass",
+        "fto": "FTO glass",
+        "fto substrate": "FTO glass",
+    }.get(normalized.lower(), normalized)
 
 
 def _append_unique(values: list[str], value: str) -> None:
     if value and value not in values:
         values.append(value)
+
+
+def _catalyst_values(text: str) -> list[str]:
+    values = _find_terms(text, COF_CATALYST_TERMS)
+    for pattern, normalized in COF_CATALYST_ALIASES:
+        for _match in re.finditer(pattern, text, flags=re.I):
+            _append_unique(values, normalized)
+    return values
+
+
+def _base_values(text: str) -> list[str]:
+    values = _find_terms(text, COF_BASE_TERMS)
+    for pattern, normalized in COF_BASE_ALIASES:
+        for _match in re.finditer(pattern, text, flags=re.I):
+            _append_unique(values, normalized)
+    return values
+
+
+def _solvent_values(text: str) -> list[str]:
+    values = _find_terms(text, COF_SOLVENT_TERMS)
+    normalized_values: list[str] = []
+    for value in values:
+        canonical = {
+            "o-DCB": "1,2-dichlorobenzene",
+            "DCM": "dichloromethane",
+        }.get(value, value)
+        _append_unique(normalized_values, canonical)
+    for pattern, normalized in COF_SOLVENT_ALIASES:
+        for _match in re.finditer(pattern, text, flags=re.I):
+            _append_unique(normalized_values, normalized)
+    return normalized_values
+
+
+def _route_values(text: str) -> list[str]:
+    values = _find_terms(text, COF_ROUTE_TERMS)
+    for pattern, normalized in COF_ROUTE_ALIASES:
+        for _match in re.finditer(pattern, text, flags=re.I):
+            _append_unique(values, normalized)
+    return values
 
 
 def _find_terms(text: str, terms: Iterable[str]) -> list[str]:
@@ -193,8 +335,11 @@ def heuristic_cof_names(text: str) -> list[str]:
 
 def _temperature_values(text: str) -> list[str]:
     values: list[str] = []
-    for match in re.finditer(r"\b-?\d+(?:\.\d+)?\s*(?:°C|℃|K)\b", text):
-        _append_unique(values, " ".join(match.group(0).split()))
+    pattern = r"\b-?\d+(?:\.\d+)?\s*{}(?=\s|[),.;:]|$)".format(TEMPERATURE_UNIT_PATTERN)
+    for match in re.finditer(pattern, text):
+        normalized = " ".join(match.group(0).split())
+        normalized = re.sub(r"\s*{}\Z".format(CLEANSIUS_VARIANT_PATTERN), " °C", normalized)
+        _append_unique(values, normalized)
     for match in re.finditer(r"\b(?:room|ambient)\s+temperature\b|\bat\s+RT\b|\bRT\b", text, flags=re.I):
         value = re.sub(r"^at\s+", "", " ".join(match.group(0).split()), flags=re.I)
         _append_unique(values, value)
@@ -210,6 +355,55 @@ def _time_values(text: str) -> list[str]:
     ).format(number_words)
     for match in re.finditer(pattern, text, flags=re.I):
         _append_unique(values, " ".join(match.group(0).split()))
+    return values
+
+
+def _atmosphere_values(text: str) -> list[str]:
+    values: list[str] = []
+    patterns = [
+        r"\bunder\s+(?:an?\s+)?(?:inert\s+)?(?P<atmosphere>{})\b".format(ATMOSPHERE_LABEL_PATTERN),
+        r"\bunder\s+(?:an?\s+)?(?P<atmosphere>{})\s+atmosphere\b".format(ATMOSPHERE_LABEL_PATTERN),
+        r"\bunder\s+(?:an?\s+)?(?:flow|stream)\s+of\s+(?P<atmosphere>{})\b".format(ATMOSPHERE_LABEL_PATTERN),
+        r"\bunder\s+(?:an?\s+)?(?P<atmosphere>{})\s+(?:flow|stream)\b".format(ATMOSPHERE_LABEL_PATTERN),
+        r"\bunder\s+flowing\s+(?P<atmosphere>{})\b".format(ATMOSPHERE_LABEL_PATTERN),
+        r"\b(?:under|in)\s+(?:an?\s+)?atmosphere\s+of\s+(?P<atmosphere>{})\b".format(ATMOSPHERE_LABEL_PATTERN),
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.I):
+            _append_unique(values, _normalize_atmosphere_value(match.group("atmosphere")))
+    for match in re.finditer(r"\bunder\s+(?:an?\s+)?inert\s+atmosphere\b", text, flags=re.I):
+        _append_unique(values, "inert atmosphere")
+    return values
+
+
+def _substrate_values(text: str) -> list[str]:
+    values: list[str] = []
+    substrate_alias_pattern = "|".join(
+        "(?P<alias_{}>{})".format(index, pattern)
+        for index, (pattern, _normalized) in enumerate(COF_SUBSTRATE_ALIASES)
+    )
+    substrate_pattern = "|".join(re.escape(term) for term in sorted(COF_SUBSTRATE_TERMS, key=len, reverse=True))
+    patterns = [
+        r"\b(?:grown|deposited|prepared|synthesized|formed|cast|coated)\s+(?:on|onto)\s+(?P<substrate>{})\b".format(substrate_pattern),
+        r"\b(?:grown|deposited|prepared|synthesized|formed|cast|coated)\s+(?:on|onto)\s+{}\b".format(
+            substrate_alias_pattern
+        ),
+        r"\bsupported\s+on\s+(?P<substrate>{})\b".format(substrate_pattern),
+        r"\bsupported\s+on\s+{}\b".format(substrate_alias_pattern),
+        r"\b(?:on|onto)\s+(?P<substrate>{})\b".format(substrate_pattern),
+        r"\b(?:on|onto)\s+{}\b".format(substrate_alias_pattern),
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.I):
+            substrate = match.groupdict().get("substrate")
+            if substrate:
+                _append_unique(values, _normalize_substrate_value(substrate))
+                continue
+            for index, (_pattern, normalized) in enumerate(COF_SUBSTRATE_ALIASES):
+                alias_value = match.groupdict().get("alias_{}".format(index))
+                if alias_value:
+                    _append_unique(values, normalized)
+                    break
     return values
 
 
@@ -229,7 +423,11 @@ def _split_monomer_phrase(phrase: str) -> list[str]:
             continue
         if name.lower() in MONOMER_STOP_WORDS_LOWER:
             continue
-        if re.fullmatch(r"\d+(?:\.\d+)?\s*(?:°C|℃|K|h|hours?|d|days?|months?)", name, flags=re.I):
+        if re.fullmatch(
+            r"\d+(?:\.\d+)?\s*(?:{}|h|hours?|d|days?|months?)".format(TEMPERATURE_UNIT_PATTERN),
+            name,
+            flags=re.I,
+        ):
             continue
         _append_unique(names, name)
     return names
@@ -247,9 +445,18 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
         (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "from"),
         (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "between"),
+        (r"\breaction\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "reaction"),
+        (r"\breaction\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "reaction"),
+        (r"\bcoupling\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "coupling"),
+        (r"\bcoupling\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "coupling"),
+        (r"\bcoupling\s+between\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "coupling"),
         (r"\bcondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
+        (r"\bcondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
         (r"\bcondensing\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
+        (r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polymerization"),
+        (r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polymerization"),
         (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
+        (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
     ]
 
     for pattern, role in patterns:
@@ -273,7 +480,7 @@ def heuristic_cof_fields(text: str) -> dict | None:
     if names:
         fields["names"] = names
 
-    routes = _find_terms(text, COF_ROUTE_TERMS)
+    routes = _route_values(text)
     if routes:
         fields["polymerization_routes"] = [{"route": route} for route in routes]
 
@@ -285,21 +492,29 @@ def heuristic_cof_fields(text: str) -> dict | None:
     if monomers:
         fields["monomers"] = monomers
 
-    catalysts = _find_terms(text, COF_CATALYST_TERMS)
+    catalysts = _catalyst_values(text)
     if catalysts:
         fields["catalysts"] = [{"catalyst": catalyst} for catalyst in catalysts]
 
-    bases = _find_terms(text, COF_BASE_TERMS)
+    bases = _base_values(text)
     if bases:
         fields["bases"] = [{"base": base} for base in bases]
 
-    solvents = _find_terms(text, COF_SOLVENT_TERMS)
+    solvents = _solvent_values(text)
     if solvents:
         fields["solvents"] = [{"solvent": solvent} for solvent in solvents]
+
+    atmospheres = _atmosphere_values(text)
+    if atmospheres:
+        fields["atmospheres"] = [{"atmosphere": atmosphere} for atmosphere in atmospheres]
 
     interfaces = _find_terms(text, COF_INTERFACE_TERMS)
     if interfaces:
         fields["interfaces"] = [{"interface": interface} for interface in interfaces]
+
+    substrates = _substrate_values(text)
+    if substrates:
+        fields["substrates"] = [{"substrate": substrate} for substrate in substrates]
 
     temperatures = _temperature_values(text)
     if temperatures:

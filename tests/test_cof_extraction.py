@@ -11,7 +11,7 @@ SUZUKI_COF_TEXT = (
     "C-C bonded two-dimensional conjugated covalent organic framework films "
     "2DCCOF1 and 2DCCOF2 were synthesized from aryl diboronic ester and "
     "porphyrin monomer by Suzuki polymerization at a "
-    "water/toluene interface using Pd(PPh3)4 and K2CO3 under argon at 2 °C "
+    "water/toluene interface using Pd(PPh3)4 and K2CO3 under argon at 2 掳C "
     "for one month."
 )
 
@@ -37,6 +37,7 @@ def test_heuristic_cof_fields_suzuki_film():
     assert {"monomer": "porphyrin monomer", "role": "from"} in fields["monomers"]
     assert {"catalyst": "Pd(PPh3)4"} in fields["catalysts"]
     assert {"base": "K2CO3"} in fields["bases"]
+    assert {"atmosphere": "argon"} in fields["atmospheres"]
     assert {"interface": "water/toluene interface"} in fields["interfaces"]
     assert {"solvent": "toluene"} in fields["solvents"]
     assert {"solvent": "water"} in fields["solvents"]
@@ -47,6 +48,14 @@ def test_heuristic_cof_fields_suzuki_film():
 def test_heuristic_cof_monomers_from_and_between_patterns():
     from_text = "COF-1 was synthesized from 1,3,5-triformylbenzene and p-phenylenediamine."
     between_text = "A COF was formed between TFP and TAPB under solvothermal conditions."
+    reaction_text = (
+        "TpPa-1 COF was obtained by the reaction of 1,3,5-triformylphloroglucinol "
+        "with p-phenylenediamine in mesitylene/dioxane."
+    )
+    polymerization_text = (
+        "A vinylene-linked COF was formed by polymerization of 2,4,6-trimethyl-1,3,5-triazine "
+        "with terephthaldehyde under ionothermal conditions."
+    )
 
     assert heuristic_cof_monomers(from_text) == [
         {"monomer": "1,3,5-triformylbenzene", "role": "from"},
@@ -55,6 +64,26 @@ def test_heuristic_cof_monomers_from_and_between_patterns():
     assert heuristic_cof_monomers(between_text) == [
         {"monomer": "TFP", "role": "between"},
         {"monomer": "TAPB", "role": "between"},
+    ]
+    assert heuristic_cof_monomers(reaction_text) == [
+        {"monomer": "1,3,5-triformylphloroglucinol", "role": "reaction"},
+        {"monomer": "p-phenylenediamine", "role": "reaction"},
+    ]
+    assert heuristic_cof_monomers(polymerization_text) == [
+        {"monomer": "2,4,6-trimethyl-1,3,5-triazine", "role": "polymerization"},
+        {"monomer": "terephthaldehyde", "role": "polymerization"},
+    ]
+
+
+def test_heuristic_cof_monomers_coupling_patterns():
+    text = (
+        "A C-C bonded COF was formed by Suzuki coupling of "
+        "1,3,6,8-tetrabromopyrene with benzene-1,4-diboronic acid in toluene/water."
+    )
+
+    assert heuristic_cof_monomers(text) == [
+        {"monomer": "1,3,6,8-tetrabromopyrene", "role": "coupling"},
+        {"monomer": "benzene-1,4-diboronic acid", "role": "coupling"},
     ]
 
 
@@ -76,7 +105,7 @@ def test_heuristic_cof_fields_imine_route():
     text = (
         "An imine-linked PyTTA-TPA-COF was obtained by Schiff base "
         "polycondensation of PyTTA with TPA in mesitylene and 1,4-dioxane "
-        "at 120 °C for 72 h."
+        "at 120 掳C for 72 h."
     )
 
     fields = heuristic_cof_fields(text)
@@ -120,7 +149,7 @@ def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "
         "and 2,3,6,7,10,11-hexahydroxytriphenylene through boronate ester "
-        "condensation in mesitylene and 1,4-dioxane at 85 °C for 72 h."
+        "condensation in mesitylene and 1,4-dioxane at 85 掳C for 72 h."
     )
 
     fields = heuristic_cof_fields(text)
@@ -141,7 +170,7 @@ def test_heuristic_cof_fields_knoevenagel_olefin_route():
     text = (
         "An olefin-linked COF-V was prepared by Knoevenagel condensation of "
         "1,3,5-triformylbenzene with 2,4,6-trimethyl-1,3,5-triazine using "
-        "piperidine in dioxane at 120 °C for 3 days."
+        "piperidine in dioxane at 120 掳C for 3 days."
     )
 
     fields = heuristic_cof_fields(text)
@@ -163,7 +192,7 @@ def test_heuristic_cof_fields_beta_ketoenamine_overnight():
         "A beta-ketoenamine-linked TpPa-1 COF was synthesized by "
         "Schiff-base condensation of 1,3,5-triformylphloroglucinol with "
         "p-phenylenediamine in mesitylene/dioxane with 6 M acetic acid "
-        "at 120 °C for overnight."
+        "at 120 掳C for overnight."
     )
 
     fields = heuristic_cof_fields(text)
@@ -179,3 +208,375 @@ def test_heuristic_cof_fields_beta_ketoenamine_overnight():
     assert {"solvent": "dioxane"} in fields["solvents"]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["overnight"]
+
+
+def test_heuristic_cof_fields_reaction_wording():
+    text = (
+        "A beta-ketoenamine-linked TpPa-1 COF was obtained by the reaction "
+        "of 1,3,5-triformylphloroglucinol with p-phenylenediamine in "
+        "mesitylene/dioxane with acetic acid at 120 掳C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TpPa-1 COF"]
+    assert {"monomer": "1,3,5-triformylphloroglucinol", "role": "reaction"} in fields["monomers"]
+    assert {"monomer": "p-phenylenediamine", "role": "reaction"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_catalyst_abbreviation_normalization():
+    text = (
+        "An imine-linked COF-380 was synthesized from TAPB and terephthaldehyde "
+        "in mesitylene/dioxane with 6 M AcOH and TFA at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-380"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"catalyst": "trifluoroacetic acid"} in fields["catalysts"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_base_abbreviation_normalization():
+    text = (
+        "A vinylene-linked COF-381 was prepared by Knoevenagel condensation of "
+        "TFPT with PDAN using Et3N and Hunig's base in acetonitrile at 70 \u00b0C for 24 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-381"]
+    assert {"route": "Knoevenagel condensation"} in fields["polymerization_routes"]
+    assert {"linkage": "vinylene-linked"} in fields["linkages"]
+    assert {"monomer": "TFPT", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "PDAN", "role": "condensation"} in fields["monomers"]
+    assert {"base": "triethylamine"} in fields["bases"]
+    assert {"base": "DIPEA"} in fields["bases"]
+    assert {"solvent": "acetonitrile"} in fields["solvents"]
+    assert fields["temperature"] == ["70 \u00b0C"]
+    assert fields["time"] == ["24 h"]
+
+
+def test_heuristic_cof_fields_solvent_abbreviation_normalization():
+    text = (
+        "An imine-linked COF-382 was synthesized from TAPB and terephthaldehyde "
+        "in MeCN/o-DCB with n-BuOH and 6 M AcOH at 85 \u00b0C for 48 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-382"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "acetonitrile"} in fields["solvents"]
+    assert {"solvent": "1,2-dichlorobenzene"} in fields["solvents"]
+    assert {"solvent": "n-butanol"} in fields["solvents"]
+    assert fields["temperature"] == ["85 \u00b0C"]
+    assert fields["time"] == ["48 h"]
+
+
+def test_heuristic_cof_fields_dichloromethane_alias_normalization():
+    text = (
+        "An imine-linked COF-383 was synthesized from TAPB and terephthaldehyde "
+        "in CH2Cl2/DCM with 6 M AcOH at room temperature for 24 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-383"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert fields["solvents"] == [{"solvent": "dichloromethane"}]
+    assert fields["temperature"] == ["room temperature"]
+    assert fields["time"] == ["24 h"]
+
+
+def test_heuristic_cof_fields_extended_solvent_alias_normalization():
+    text = (
+        "An imine-linked COF-384 was synthesized from TAPB and terephthaldehyde "
+        "in MeOH/EtOH/tetrahydrofuran with N,N-dimethylformamide and "
+        "N,N-dimethylacetamide at 90 \u00b0C for 24 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-384"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"solvent": "methanol"} in fields["solvents"]
+    assert {"solvent": "ethanol"} in fields["solvents"]
+    assert {"solvent": "THF"} in fields["solvents"]
+    assert {"solvent": "DMF"} in fields["solvents"]
+    assert {"solvent": "DMAc"} in fields["solvents"]
+    assert fields["temperature"] == ["90 \u00b0C"]
+    assert fields["time"] == ["24 h"]
+
+
+def test_heuristic_cof_fields_condensation_of_a_and_b_wording():
+    text = (
+        "An imine-linked COF-300 was obtained by Schiff-base condensation "
+        "of 1,3,5-triformylbenzene and p-phenylenediamine in "
+        "mesitylene/dioxane at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-300"]
+    assert {"route": "Schiff-base condensation"} in fields["polymerization_routes"]
+    assert {"linkage": "imine-linked"} in fields["linkages"]
+    assert {"monomer": "1,3,5-triformylbenzene", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "p-phenylenediamine", "role": "condensation"} in fields["monomers"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_vapor_induced_conversion_aliases():
+    text = (
+        "A crystalline COF-VIC film was prepared on indium tin oxide glass from TAPB and "
+        "terephthaldehyde by vapor-induced conversion (VIC) in mesitylene/dioxane with "
+        "6 M AcOH at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-VIC"]
+    assert {"route": "vapor induced conversion"} in fields["polymerization_routes"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert {"substrate": "ITO glass"} in fields["substrates"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_temperature_variants_are_normalized():
+    text = "TpPa-1 COF was synthesized at 85 \u2103 and then heated to 120 \u63b3C for 72 h."
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["temperature"] == ["85 \u00b0C", "120 \u00b0C"]
+
+
+def test_heuristic_cof_fields_suzuki_coupling_wording():
+    text = (
+        "A C-C bonded COF-LZU1 was formed by Suzuki coupling of "
+        "1,3,6,8-tetrabromopyrene with benzene-1,4-diboronic acid "
+        "using Pd(PPh3)4 and K2CO3 at the water/toluene interface at 90 \u00b0C for 48 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-LZU1"]
+    assert {"route": "Suzuki coupling"} in fields["polymerization_routes"]
+    assert {"linkage": "C-C bonded"} in fields["linkages"]
+    assert {"monomer": "1,3,6,8-tetrabromopyrene", "role": "coupling"} in fields["monomers"]
+    assert {"monomer": "benzene-1,4-diboronic acid", "role": "coupling"} in fields["monomers"]
+    assert {"catalyst": "Pd(PPh3)4"} in fields["catalysts"]
+    assert {"base": "K2CO3"} in fields["bases"]
+    assert {"interface": "water/toluene interface"} in fields["interfaces"]
+    assert {"solvent": "toluene"} in fields["solvents"]
+    assert {"solvent": "water"} in fields["solvents"]
+    assert fields["temperature"] == ["90 \u00b0C"]
+    assert fields["time"] == ["48 h"]
+
+
+def test_heuristic_cof_fields_atmosphere_wording():
+    text = (
+        "An imine-linked COF-320 was prepared by Schiff base polycondensation "
+        "of TAPB with terephthaldehyde in mesitylene/dioxane under nitrogen "
+        "at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-320"]
+    assert {"route": "Schiff base polycondensation"} in fields["polymerization_routes"]
+    assert {"monomer": "TAPB", "role": "polycondensation"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "polycondensation"} in fields["monomers"]
+    assert {"atmosphere": "nitrogen"} in fields["atmospheres"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_atmosphere_of_wording():
+    text = (
+        "An imine-linked COF-333 was synthesized from TAPB and terephthaldehyde "
+        "in mesitylene/dioxane at 120 \u00b0C for 72 h under an atmosphere of argon."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-333"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"atmosphere": "argon"} in fields["atmospheres"]
+
+
+def test_heuristic_cof_fields_atmosphere_shorthand_wording():
+    text = (
+        "An imine-linked COF-345 was synthesized from TAPB and terephthaldehyde "
+        "in mesitylene/dioxane under N2 atmosphere at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-345"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"atmosphere": "nitrogen"} in fields["atmospheres"]
+
+
+def test_heuristic_cof_fields_inert_atmosphere_wording():
+    text = (
+        "A C-C bonded COF-LZU2 was formed by Suzuki coupling of "
+        "1,3,6,8-tetrabromopyrene with benzene-1,4-diboronic acid "
+        "using Pd(PPh3)4 and K2CO3 under inert atmosphere at 90 \u00b0C for 48 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-LZU2"]
+    assert {"atmosphere": "inert atmosphere"} in fields["atmospheres"]
+
+
+def test_heuristic_cof_fields_atmosphere_flow_wording():
+    text = (
+        "An imine-linked COF-360 was synthesized from TAPB and terephthaldehyde "
+        "in mesitylene/dioxane under a flow of nitrogen at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-360"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"atmosphere": "nitrogen"} in fields["atmospheres"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_atmosphere_flow_shorthand_wording():
+    text = (
+        "An imine-linked COF-361 was synthesized from TAPB and terephthaldehyde "
+        "in mesitylene/dioxane under Ar stream at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-361"]
+    assert {"atmosphere": "argon"} in fields["atmospheres"]
+
+
+def test_heuristic_cof_fields_substrate_wording():
+    text = (
+        "A vinylene-linked COF-TFPT was prepared on indium tin oxide glass "
+        "by Knoevenagel condensation of TFPT with PDAN in acetonitrile "
+        "at 70 \u00b0C for 24 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-TFPT"]
+    assert {"route": "Knoevenagel condensation"} in fields["polymerization_routes"]
+    assert {"monomer": "TFPT", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "PDAN", "role": "condensation"} in fields["monomers"]
+    assert {"substrate": "ITO glass"} in fields["substrates"]
+    assert {"solvent": "acetonitrile"} in fields["solvents"]
+    assert fields["temperature"] == ["70 \u00b0C"]
+    assert fields["time"] == ["24 h"]
+
+
+def test_heuristic_cof_fields_substrate_shorthand_wording():
+    text = (
+        "An imine-linked COF-370 was grown on silicon wafer from TAPB and "
+        "terephthaldehyde in mesitylene/dioxane at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-370"]
+    assert {"substrate": "silicon wafer"} in fields["substrates"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+
+
+def test_heuristic_cof_fields_substrate_acronym_and_onto_wording():
+    text = (
+        "A vinylene-linked COF-FTO was deposited onto fluorine-doped tin oxide "
+        "(FTO) glass by Knoevenagel condensation of TFPT with PDAN in "
+        "acetonitrile at 70 \u00b0C for 24 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-FTO"]
+    assert {"route": "Knoevenagel condensation"} in fields["polymerization_routes"]
+    assert {"monomer": "TFPT", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "PDAN", "role": "condensation"} in fields["monomers"]
+    assert {"substrate": "FTO glass"} in fields["substrates"]
+    assert {"solvent": "acetonitrile"} in fields["solvents"]
+    assert fields["temperature"] == ["70 \u00b0C"]
+    assert fields["time"] == ["24 h"]
+
+
+def test_heuristic_cof_fields_substrate_shorthand_alias_wording():
+    text = (
+        "An imine-linked COF-371 was supported on ITO substrate from TAPB and "
+        "terephthaldehyde in mesitylene/dioxane at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-371"]
+    assert {"substrate": "ITO glass"} in fields["substrates"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_do_not_infer_air_stable_as_atmosphere():
+    text = (
+        "An imine-linked COF-320 was prepared from an air-stable aldehyde monomer "
+        "and TAPB in mesitylene/dioxane at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-320"]
+    assert "atmospheres" not in fields

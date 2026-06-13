@@ -14,14 +14,10 @@ import requests
 from bs4 import BeautifulSoup
 from pdfminer.high_level import extract_text
 
+from .bootstrap import LEGACY_ROOT, PROJECT_ROOT, ensure_repo_environment
 from .cof import heuristic_cof_fields, is_cof_candidate_text, normalized_cof_item
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-LEGACY_ROOT = PROJECT_ROOT / "DigiMOF-database-master-main-main" / "chemdataextractor_MOFs"
-
-if str(LEGACY_ROOT) not in sys.path:
-    sys.path.insert(0, str(LEGACY_ROOT))
+ensure_repo_environment()
 
 from chemdataextractor import Document  # noqa: E402
 from chemdataextractor.doc import Paragraph  # noqa: E402

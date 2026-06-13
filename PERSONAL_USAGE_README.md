@@ -22,17 +22,17 @@
 cd H:\dongfx\tools\project\digimof
 ```
 
-然后设置两个环境变量：
+现在 `framework_miner`、`evaluate_framework_miner.py` 和 `pytest` 都会自动完成本地引导：
+
+- 自动把仓库根目录和 `DigiMOF-database-master-main-main\chemdataextractor_MOFs` 加到导入路径。
+- 自动把 `chemdataextractor-local.yml` 设为 `CHEMDATAEXTRACTOR_CONFIG`，优先使用仓库里的 `cde-data/` 模型。
+
+通常不再需要手动设置环境变量。只有在你直接调用原始 DigiMOF 脚本，或者想显式覆盖配置时，才需要手动设置：
 
 ```powershell
 $env:PYTHONPATH = ((Resolve-Path '.').Path + ';' + (Resolve-Path 'DigiMOF-database-master-main-main\chemdataextractor_MOFs').Path)
 $env:CHEMDATAEXTRACTOR_CONFIG = (Resolve-Path 'chemdataextractor-local.yml').Path
 ```
-
-这一步的意思是：
-
-- 用本文件夹里的旧 ChemDataExtractor，不要误用系统里新的包。
-- 告诉 ChemDataExtractor 模型文件在本地 `cde-data/`。
 
 ## 2. 最推荐的日常流程
 
@@ -183,7 +183,13 @@ conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytes
 现在应该看到类似：
 
 ```text
-27 passed
+50 passed
+```
+
+benchmark 也可以直接跑，不需要额外 shell 配置：
+
+```powershell
+conda run -n digimof-repro python evaluate_framework_miner.py
 ```
 
 如果只是旧 ChemDataExtractor 的 warning，一般不用管。
@@ -246,8 +252,12 @@ COF 不建议硬塞进 DigiMOF 原规则里。COF 的关键词、反应、linkag
 - linkage/键型，例如 `C-C bonded`、`imine-linked`、`hydrazone-linked`、`boronate ester`、`olefin-linked`、`beta-ketoenamine-linked`。
 - 聚合/合成路线，例如 `Suzuki polymerization`、`Schiff base polycondensation`、`hydrazone formation`、`boronate ester condensation`、`Knoevenagel condensation`、`Schiff-base condensation`。
 - monomer 候选，例如 `aryl diboronic ester`、`porphyrin monomer`、`PyTTA`、`TPA`，也支持带多个逗号的长单体名。
-- 催化剂、碱、溶剂、界面。
-- 温度和时间，包括 `room temperature`、`ambient temperature`、`overnight` 和 `three days` 这类文字表达。
+- 催化剂、碱、溶剂、气氛、界面。
+- `bases` 现在也会规范化常见缩写，例如 `Et3N` / `NEt3` / `TEA` 统一成 `triethylamine`，`Hunig's base` 统一成 `DIPEA`，避免同一种碱在 JSONL 里分裂成多个值。
+- `solvents` 现在也会规范化常见缩写，例如 `MeCN` / `CH3CN` 统一成 `acetonitrile`，`o-DCB` 统一成 `1,2-dichlorobenzene`，`n-BuOH` 统一成 `n-butanol`，避免同一种溶剂在 JSONL 里分裂成多个值。
+- `solvents` 现在也会把 `DCM` / `CH2Cl2` 统一成 `dichloromethane`，避免二氯甲烷在缩写和分子式写法之间分裂成多个值。
+- 温度和时间，包括 `room temperature`、`ambient temperature`、`overnight` 和 `three days` 这类文字表达；数值温度也兼容常见 `°C` / `℃` / mojibake 写法，并统一输出成 `°C`。
+- `atmospheres` 现在只在明确条件措辞里触发，例如 `under nitrogen`、`under an atmosphere of argon`、`under N2 atmosphere`、`under a flow of nitrogen`、`under Ar stream`；像 `air-stable monomer` 这种描述不会再被误记成反应气氛。
 
 跑内置 COF 小样例：
 
@@ -270,6 +280,7 @@ conda run -n digimof-repro python -m framework_miner.cli sample_inputs\cof_suzuk
     ],
     "catalysts": [{"catalyst": "Pd(PPh3)4"}],
     "bases": [{"base": "K2CO3"}],
+    "atmospheres": [{"atmosphere": "argon"}],
     "interfaces": [{"interface": "water/toluene interface"}],
     "temperature": ["2 °C"],
     "time": ["one month"]
@@ -289,7 +300,7 @@ conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o 
 conda run -n digimof-repro python -m framework_miner.cli downloaded_articles -o sample_outputs\framework_results.jsonl --framework all --framework-only --max-chars 5000
 ```
 
-目前 COF 还是 heuristic parser。它适合帮我们快速筛实验句子和抽取骨架，不适合把每个字段都当作最终数据库直接信任。现在已经覆盖 Suzuki、imine/Schiff-base、hydrazone、boronate ester、Knoevenagel 和 beta-ketoenamine 这几类核心合成骨架；后面最值得继续加的是真实开放文献样例、monomer normalization 和错误报告。
+目前 COF 还是 heuristic parser。它适合帮我们快速筛实验句子和抽取骨架，不适合把每个字段都当作最终数据库直接信任。现在已经覆盖 Suzuki、imine/Schiff-base、hydrazone、boronate ester、Knoevenagel、beta-ketoenamine，以及 `reaction of A with B` 这类常见单体表述；后面最值得继续加的是真实开放文献样例、monomer normalization 和错误报告。
 
 ### COF monomer 字段怎么理解
 
@@ -356,7 +367,7 @@ evaluate_framework_miner.py
 它的目的不是追求数量，而是守住几个核心合成字段：
 
 - MOF：材料名、合成路线、topology、linker。
-- COF：材料名、polymerization route、linkage、monomer、catalyst/base、interface、temperature、time。
+- COF：材料名、polymerization route、linkage、monomer、catalyst/base、atmosphere、interface、temperature、time。
 
 运行：
 
@@ -367,8 +378,8 @@ conda run -n digimof-repro python evaluate_framework_miner.py
 当前应该看到：
 
 ```text
-cases: 8/8 passed
-field recall: 64/64
+cases: 23/23 passed
+field recall: 198/198
 ```
 
 它还会生成：
@@ -381,7 +392,7 @@ benchmark/results.md
 怎么理解：
 
 - `cases` 是样例级别，通过表示这一条文献片段的预期字段都命中了。
-- `field recall` 是字段级别，例如 64/64 表示 64 个期望字段都抽到了。
+- `field recall` 是字段级别，例如 198/198 表示 198 个期望字段都抽到了。
 - 如果某个字段漏了，`missing` 里会列出来。
 
 为什么做这个：
@@ -389,3 +400,15 @@ benchmark/results.md
 我们现在更重视“少而准”。每次加规则前后都跑 benchmark，可以避免为了多抽一点东西，反而把原来已经准的核心字段弄坏。
 
 后面真正产品化时，应该继续往 `benchmark/gold_cases.jsonl` 里加真实开放文献的短片段和人工预期字段。每加一种 COF 合成路线，比如 Knoevenagel、boronate ester、hydrazone，都先补一个 gold case，再改规则。
+## 2026-06-12 note
+
+COF extraction now treats `Suzuki coupling of A with B` and `coupling between A and B` as monomer-bearing synthesis wording, so those paragraphs can emit both the `Suzuki coupling` route and the paired monomer names in one record.
+COF extraction now also treats `Schiff-base condensation of A and B` as monomer-bearing wording, so imine COF paragraphs do not need the more specific `of A with B` phrasing to recover both monomer names.
+COF extraction now emits an `atmospheres` field for simple condition wording like `under argon` and `under nitrogen`, so inert-gas synthesis conditions are visible in the JSONL output instead of only being implicit in the evidence text.
+COF extraction now also emits a `substrates` field for explicit film-support wording like `prepared on indium tin oxide glass` and normalizes that longer phrase to `ITO glass`, so substrate-backed COF growth can be filtered without hand-reading the paragraph every time.
+COF substrate extraction now also handles `deposited onto fluorine-doped tin oxide (FTO) glass` style wording and normalizes it to `FTO glass`, so acronym-expanded substrate names remain queryable under one canonical value.
+COF substrate extraction now also normalizes shorthand support wording such as `supported on ITO substrate` to `ITO glass`, so common substrate abbreviations do not fragment the JSONL field.
+COF solvent extraction now also normalizes shorthand solvent wording such as `MeCN`, `CH3CN`, `o-DCB`, and `n-BuOH` to canonical values like `acetonitrile`, `1,2-dichlorobenzene`, and `n-butanol`, so solvent-heavy synthesis paragraphs stay queryable under one field vocabulary.
+COF solvent extraction now also normalizes additional shorthand and expanded solvent wording such as `MeOH`, `EtOH`, `tetrahydrofuran`, `N,N-dimethylformamide`, and `N,N-dimethylacetamide` to canonical values like `methanol`, `ethanol`, `THF`, `DMF`, and `DMAc`, so mixed shorthand/full-name solvent descriptions do not fragment the `solvents` field.
+COF catalyst extraction now normalizes common acid-catalyst abbreviations such as `AcOH`, `HOAc`, and `TFA` to canonical values like `acetic acid` and `trifluoroacetic acid`, so benchmark and JSONL outputs are less fragmented.
+COF route extraction now also normalizes hyphenated `vapor-induced conversion`, `vapour-induced conversion`, and the common `VIC` acronym to the canonical `vapor induced conversion` route value, so film-growth route labels stay queryable under one canonical value.

@@ -29,7 +29,9 @@ COF 当前优先字段：
 - `catalysts`
 - `bases`
 - `solvents`
+- `atmospheres`
 - `interfaces`
+- `substrates`
 - `temperature`
 - `time`
 
@@ -60,9 +62,9 @@ conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytes
 当前目标结果：
 
 ```text
-cases: 8/8 passed
-field recall: 64/64
-27 passed
+cases: 23/23 passed
+field recall: 198/198
+50 passed
 ```
 
 ## 下一步建议
@@ -76,6 +78,7 @@ field recall: 64/64
    - Knoevenagel condensation
    - boronate ester condensation
    - hydrazone formation
+   - reaction of A with B wording
 2. 每类 MOF 合成路线各加 1 个 gold case：
    - solvothermal
    - hydrothermal
@@ -89,3 +92,20 @@ field recall: 64/64
 - DOI/URL source metadata enrichment。
 - 人工审阅表导出。
 - 简单网页界面。
+## 2026-06-12 note
+
+Benchmark coverage now includes a COF `Suzuki coupling of A with B` case so monomer recall is checked for coupling wording, not only for `Suzuki polymerization`.
+Benchmark coverage now also includes `Schiff-base condensation of A and B`, and the COF monomer heuristic handles this `of A and B` wording in addition to the earlier `of A with B` form.
+COF extraction now emits an `atmospheres` field for straightforward condition wording such as `under argon` and `under nitrogen`, and the Suzuki gold case checks that inert-gas condition explicitly.
+COF atmosphere extraction is now condition-scoped instead of raw keyword matching: it keeps forms like `under nitrogen` and `under an atmosphere of argon`, but ignores unrelated wording such as `air-stable` so the field is less noisy.
+COF atmosphere extraction now also normalizes shorthand inert-gas wording such as `under N2 atmosphere` to the canonical `nitrogen` field value, so benchmark and JSONL outputs are less fragmented.
+COF atmosphere extraction now also captures explicit flow phrasing such as `under a flow of nitrogen` and `under Ar stream`, which appears in synthesis procedures that describe purge conditions instead of `under nitrogen atmosphere`.
+COF extraction now also emits a `substrates` field for film-growth wording such as `prepared on indium tin oxide glass` and normalizes long forms like `indium tin oxide glass` to `ITO glass` so support-substrate information is easier to query in JSONL outputs.
+COF substrate extraction now also handles `deposited onto fluorine-doped tin oxide (FTO) glass` style wording and normalizes it to `FTO glass`, so acronym-expanded substrate names do not fragment the field.
+COF substrate extraction now also normalizes shorthand support wording such as `supported on ITO substrate` to `ITO glass`, so common film-growth substrate abbreviations stay queryable under the same canonical value.
+COF catalyst extraction now normalizes common acid-catalyst abbreviations such as `AcOH`, `HOAc`, and `TFA` to canonical values like `acetic acid` and `trifluoroacetic acid`, so catalyst fields stay queryable across shorthand-heavy synthesis paragraphs.
+COF base extraction now also normalizes shorthand base wording such as `Et3N`, `NEt3`, `TEA`, and `Hunig's base` to canonical values like `triethylamine` and `DIPEA`, so base fields stay queryable across abbreviation-heavy synthesis paragraphs.
+COF solvent extraction now also normalizes shorthand solvent wording such as `MeCN`, `CH3CN`, `o-DCB`, and `n-BuOH` to canonical values like `acetonitrile`, `1,2-dichlorobenzene`, and `n-butanol`, so solvent-heavy synthesis paragraphs do not fragment the `solvents` field.
+COF solvent extraction now also normalizes additional shorthand and expanded solvent wording such as `MeOH`, `EtOH`, `tetrahydrofuran`, `N,N-dimethylformamide`, and `N,N-dimethylacetamide` to canonical values like `methanol`, `ethanol`, `THF`, `DMF`, and `DMAc`, so mixed shorthand/full-name solvent wording stays queryable under one solvent vocabulary.
+COF solvent extraction now also normalizes `DCM` and `CH2Cl2` to the canonical `dichloromethane` solvent value, so mixed shorthand/full-form dichloromethane wording does not split the `solvents` field.
+COF route extraction now also normalizes hyphenated `vapor-induced conversion`, `vapour-induced conversion`, and the common `VIC` acronym to the canonical `vapor induced conversion` route value, so film-growth procedures do not fragment polymerization route fields.

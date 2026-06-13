@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from evaluate_framework_miner import load_cases, score_case
+from evaluate_framework_miner import load_cases, normalize_field_value, score_case
 
 
 def test_gold_benchmark_cases_pass():
@@ -9,3 +9,10 @@ def test_gold_benchmark_cases_pass():
 
     assert all(result["passed"] for result in results)
     assert sum(result["matched"] for result in results) == sum(result["expected"] for result in results)
+
+
+def test_temperature_normalization_handles_celsius_variants():
+    assert normalize_field_value("temperature", "90 掳C") == "90 °C"
+    assert normalize_field_value("temperature", "90 ▲C") == "90 °C"
+    assert normalize_field_value("temperature", "90 \u93ba\u77ef") == "90 °C"
+    assert normalize_field_value("temperature", "90 ℃") == "90 °C"

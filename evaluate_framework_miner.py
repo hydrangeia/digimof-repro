@@ -5,10 +5,15 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
+from framework_miner.bootstrap import ensure_repo_environment
+from framework_miner.cof import CLEANSIUS_VARIANT_PATTERN
 from framework_miner.legacy_digimof import merge_items, parse_html_text
+
+ensure_repo_environment()
 
 
 FIELD_VALUE_KEYS = {
@@ -21,7 +26,9 @@ FIELD_VALUE_KEYS = {
     "catalysts": "catalyst",
     "bases": "base",
     "solvents": "solvent",
+    "atmospheres": "atmosphere",
     "interfaces": "interface",
+    "substrates": "substrate",
 }
 
 
@@ -38,6 +45,30 @@ def load_cases(path: Path) -> list[dict[str, Any]]:
     return cases
 
 
+def normalize_field_value(field_name: str, value: str) -> str:
+    value = " ".join(value.split())
+    if field_name != "temperature":
+        return value
+
+    lower = value.lower()
+    if lower in {"room temperature", "ambient temperature", "rt", "at rt"}:
+        return lower[3:] if lower.startswith("at ") else lower
+
+    match = re.fullmatch(r"(-?\d+(?:\.\d+)?)\s*K", value, flags=re.I)
+    if match:
+        return "{} K".format(match.group(1))
+
+    match = re.fullmatch(
+        r"(-?\d+(?:\.\d+)?)\s*(?:{}|[^0-9Kk\s]+C)".format(CLEANSIUS_VARIANT_PATTERN),
+        value,
+        flags=re.I,
+    )
+    if match:
+        return "{} °C".format(match.group(1))
+
+    return value
+
+
 def values_for_field(fields: dict[str, Any], field_name: str) -> list[str]:
     values = fields.get(field_name, [])
     if not isinstance(values, list):
@@ -47,9 +78,9 @@ def values_for_field(fields: dict[str, Any], field_name: str) -> list[str]:
     extracted = []
     for value in values:
         if isinstance(value, str):
-            extracted.append(value)
+            extracted.append(normalize_field_value(field_name, value))
         elif isinstance(value, dict) and value_key and isinstance(value.get(value_key), str):
-            extracted.append(value[value_key])
+            extracted.append(normalize_field_value(field_name, value[value_key]))
     return extracted
 
 
@@ -83,6 +114,7 @@ def score_case(case: dict[str, Any]) -> dict[str, Any]:
 
     missing: dict[str, list[str]] = {}
     for field_name, expected_values in expected.items():
+        expected_values = [normalize_field_value(field_name, value) for value in expected_values]
         actual_values = actual_by_field.get(field_name, [])
         field_missing = [value for value in expected_values if value not in actual_values]
         if field_missing:
