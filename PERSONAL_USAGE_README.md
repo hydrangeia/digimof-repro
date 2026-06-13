@@ -183,7 +183,7 @@ conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytes
 现在应该看到类似：
 
 ```text
-50 passed
+54 passed
 ```
 
 benchmark 也可以直接跑，不需要额外 shell 配置：
@@ -256,6 +256,7 @@ COF 不建议硬塞进 DigiMOF 原规则里。COF 的关键词、反应、linkag
 - `bases` 现在也会规范化常见缩写，例如 `Et3N` / `NEt3` / `TEA` 统一成 `triethylamine`，`Hunig's base` 统一成 `DIPEA`，避免同一种碱在 JSONL 里分裂成多个值。
 - `solvents` 现在也会规范化常见缩写，例如 `MeCN` / `CH3CN` 统一成 `acetonitrile`，`o-DCB` 统一成 `1,2-dichlorobenzene`，`n-BuOH` 统一成 `n-butanol`，避免同一种溶剂在 JSONL 里分裂成多个值。
 - `solvents` 现在也会把 `DCM` / `CH2Cl2` 统一成 `dichloromethane`，避免二氯甲烷在缩写和分子式写法之间分裂成多个值。
+- `interfaces` 现在也会规范化常见写法差异，例如 `air/water interface` 会统一成 `air-water interface`，`liquid/liquid interface` 会统一成 `liquid-liquid interface`，避免界面生长记录因为斜杠写法而分裂。
 - 温度和时间，包括 `room temperature`、`ambient temperature`、`overnight` 和 `three days` 这类文字表达；数值温度也兼容常见 `°C` / `℃` / mojibake 写法，并统一输出成 `°C`。
 - `atmospheres` 现在只在明确条件措辞里触发，例如 `under nitrogen`、`under an atmosphere of argon`、`under N2 atmosphere`、`under a flow of nitrogen`、`under Ar stream`；像 `air-stable monomer` 这种描述不会再被误记成反应气氛。
 
@@ -378,8 +379,8 @@ conda run -n digimof-repro python evaluate_framework_miner.py
 当前应该看到：
 
 ```text
-cases: 23/23 passed
-field recall: 198/198
+cases: 27/27 passed
+field recall: 219/219
 ```
 
 它还会生成：
@@ -392,7 +393,7 @@ benchmark/results.md
 怎么理解：
 
 - `cases` 是样例级别，通过表示这一条文献片段的预期字段都命中了。
-- `field recall` 是字段级别，例如 198/198 表示 198 个期望字段都抽到了。
+- `field recall` 是字段级别，例如 219/219 表示 219 个期望字段都抽到了。
 - 如果某个字段漏了，`missing` 里会列出来。
 
 为什么做这个：
@@ -412,3 +413,7 @@ COF solvent extraction now also normalizes shorthand solvent wording such as `Me
 COF solvent extraction now also normalizes additional shorthand and expanded solvent wording such as `MeOH`, `EtOH`, `tetrahydrofuran`, `N,N-dimethylformamide`, and `N,N-dimethylacetamide` to canonical values like `methanol`, `ethanol`, `THF`, `DMF`, and `DMAc`, so mixed shorthand/full-name solvent descriptions do not fragment the `solvents` field.
 COF catalyst extraction now normalizes common acid-catalyst abbreviations such as `AcOH`, `HOAc`, and `TFA` to canonical values like `acetic acid` and `trifluoroacetic acid`, so benchmark and JSONL outputs are less fragmented.
 COF route extraction now also normalizes hyphenated `vapor-induced conversion`, `vapour-induced conversion`, and the common `VIC` acronym to the canonical `vapor induced conversion` route value, so film-growth route labels stay queryable under one canonical value.
+COF interface extraction now also normalizes slash-form interface wording such as `air/water interface` and `liquid/liquid interface` to canonical values like `air-water interface` and `liquid-liquid interface`, so interfacial growth records do not fragment on punctuation alone.
+COF temperature extraction now also captures compact Celsius wording such as `120°C` from real open-access synthesis paragraphs, so temperatures are not missed when authors omit the space before `°C`.
+COF route extraction now also preserves real-paper `Schiff base chemical reaction` wording as a polymerization route value, so open-access synthesis paragraphs that avoid the more specific condensation/polycondensation phrasing still keep an explicit route signal in JSONL output and benchmark results.
+COF linkage extraction now also treats real-paper `imine-based COF` wording as the canonical `imine` linkage value, so open-access abstracts that state the route first and the linkage in a follow-up sentence still contribute linkage evidence to JSONL output and benchmark results.

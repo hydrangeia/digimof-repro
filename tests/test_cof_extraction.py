@@ -372,6 +372,45 @@ def test_heuristic_cof_fields_vapor_induced_conversion_aliases():
     assert fields["time"] == ["72 h"]
 
 
+def test_heuristic_cof_fields_interface_alias_normalization():
+    text = (
+        "A crystalline COF-390 film was synthesized from TAPB and terephthaldehyde at the "
+        "air/water interface in mesitylene/dioxane with 6 M AcOH at room temperature for 24 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-390"]
+    assert {"monomer": "TAPB", "role": "from"} in fields["monomers"]
+    assert {"monomer": "terephthaldehyde", "role": "from"} in fields["monomers"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"interface": "air-water interface"} in fields["interfaces"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert fields["temperature"] == ["room temperature"]
+    assert fields["time"] == ["24 h"]
+
+
+def test_heuristic_cof_fields_real_article_compact_celsius():
+    text = (
+        "TFPT-COF was synthesized by the acetic acid catalysed reversible condensation "
+        "of the building blocks in dioxane/mesitylene (1:2 v/v) at 120\u00b0C in a sealed "
+        "pressure vial under argon atmosphere for 72 hours."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TFPT-COF"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "dioxane"} in fields["solvents"]
+    assert {"solvent": "mesitylene"} in fields["solvents"]
+    assert {"atmosphere": "argon"} in fields["atmospheres"]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 hours"]
+
+
 def test_heuristic_cof_temperature_variants_are_normalized():
     text = "TpPa-1 COF was synthesized at 85 \u2103 and then heated to 120 \u63b3C for 72 h."
     fields = heuristic_cof_fields(text)
@@ -580,3 +619,31 @@ def test_heuristic_cof_fields_do_not_infer_air_stable_as_atmosphere():
     assert fields is not None
     assert fields["names"] == ["COF-320"]
     assert "atmospheres" not in fields
+
+
+def test_heuristic_cof_fields_real_article_schiff_base_reaction():
+    text = (
+        "We synthesized a pure organic non-metal crystalline covalent organic framework "
+        "TAPA-BTD-COF by bottom-up Schiff base chemical reaction."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TAPA-BTD-COF"]
+    assert {"route": "Schiff base chemical reaction"} in fields["polymerization_routes"]
+
+
+def test_heuristic_cof_fields_real_article_imine_based_linkage():
+    text = (
+        "We synthesized a pure organic non-metal crystalline covalent organic framework "
+        "TAPA-BTD-COF by bottom-up Schiff base chemical reaction. And this imine-based "
+        "COF is stable in aerobic condition and room-temperature."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TAPA-BTD-COF"]
+    assert {"route": "Schiff base chemical reaction"} in fields["polymerization_routes"]
+    assert {"linkage": "imine"} in fields["linkages"]

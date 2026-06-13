@@ -25,6 +25,10 @@ COF_PARAGRAPH_TERMS = [
 COF_ROUTE_TERMS = [
     "Suzuki polymerization",
     "Suzuki coupling",
+    "Schiff base reaction",
+    "Schiff-base reaction",
+    "Schiff base chemical reaction",
+    "Schiff-base chemical reaction",
     "Schiff base condensation",
     "Schiff base polycondensation",
     "Schiff-base condensation",
@@ -57,6 +61,7 @@ COF_LINKAGE_TERMS = [
     "sp2 carbon-linked",
     "sp2c",
     "imine-linked",
+    "imine-based",
     "hydrazone-linked",
     "olefin-linked",
     "vinylene-linked",
@@ -76,6 +81,11 @@ COF_INTERFACE_TERMS = [
     "air/water interface",
     "on-water surface",
     "water/toluene interface",
+]
+
+COF_INTERFACE_ALIASES = [
+    (r"\bliquid/liquid\s+interface\b", "liquid-liquid interface"),
+    (r"\bair/water\s+interface\b", "air-water interface"),
 ]
 
 COF_SUBSTRATE_TERMS = [
@@ -181,15 +191,15 @@ COF_NAME_PATTERNS = [
 ]
 
 TEMPERATURE_UNIT_VARIANTS = (
-    r"\u00b0\s*C",
-    r"\u00ba\s*C",
-    r"\u2103",
-    r"\u63b3C",
-    r"\u93ba\u77ef",
-    r"\u0431\u0443C",
-    r"\u0431\u0446",
-    r"\u9229\u5104K",
-    r"K",
+    "\u00b0\\s*C",
+    "\u00ba\\s*C",
+    "\u2103",
+    "\u63b3C",
+    "\u93ba\u77ef",
+    "\u0431\u0443C",
+    "\u0431\u0446",
+    "\u9229\u5104K",
+    "K",
 )
 
 MONOMER_STOP_WORDS = {
@@ -281,6 +291,32 @@ def _route_values(text: str) -> list[str]:
         for _match in re.finditer(pattern, text, flags=re.I):
             _append_unique(values, normalized)
     return values
+
+
+def _linkage_values(text: str) -> list[str]:
+    values = _find_terms(text, COF_LINKAGE_TERMS)
+    normalized_values: list[str] = []
+    for value in values:
+        canonical = {
+            "imine-based": "imine",
+        }.get(value, value)
+        _append_unique(normalized_values, canonical)
+    return normalized_values
+
+
+def _interface_values(text: str) -> list[str]:
+    values = _find_terms(text, COF_INTERFACE_TERMS)
+    normalized_values: list[str] = []
+    for value in values:
+        canonical = {
+            "liquid/liquid interface": "liquid-liquid interface",
+            "air/water interface": "air-water interface",
+        }.get(value, value)
+        _append_unique(normalized_values, canonical)
+    for pattern, normalized in COF_INTERFACE_ALIASES:
+        for _match in re.finditer(pattern, text, flags=re.I):
+            _append_unique(normalized_values, normalized)
+    return normalized_values
 
 
 def _find_terms(text: str, terms: Iterable[str]) -> list[str]:
@@ -484,7 +520,7 @@ def heuristic_cof_fields(text: str) -> dict | None:
     if routes:
         fields["polymerization_routes"] = [{"route": route} for route in routes]
 
-    linkages = _find_terms(text, COF_LINKAGE_TERMS)
+    linkages = _linkage_values(text)
     if linkages:
         fields["linkages"] = [{"linkage": linkage} for linkage in linkages]
 
@@ -508,7 +544,7 @@ def heuristic_cof_fields(text: str) -> dict | None:
     if atmospheres:
         fields["atmospheres"] = [{"atmosphere": atmosphere} for atmosphere in atmospheres]
 
-    interfaces = _find_terms(text, COF_INTERFACE_TERMS)
+    interfaces = _interface_values(text)
     if interfaces:
         fields["interfaces"] = [{"interface": interface} for interface in interfaces]
 

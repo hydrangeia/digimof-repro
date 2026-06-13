@@ -62,9 +62,9 @@ conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytes
 当前目标结果：
 
 ```text
-cases: 23/23 passed
-field recall: 198/198
-50 passed
+cases: 27/27 passed
+field recall: 219/219
+54 passed
 ```
 
 ## 下一步建议
@@ -109,3 +109,7 @@ COF solvent extraction now also normalizes shorthand solvent wording such as `Me
 COF solvent extraction now also normalizes additional shorthand and expanded solvent wording such as `MeOH`, `EtOH`, `tetrahydrofuran`, `N,N-dimethylformamide`, and `N,N-dimethylacetamide` to canonical values like `methanol`, `ethanol`, `THF`, `DMF`, and `DMAc`, so mixed shorthand/full-name solvent wording stays queryable under one solvent vocabulary.
 COF solvent extraction now also normalizes `DCM` and `CH2Cl2` to the canonical `dichloromethane` solvent value, so mixed shorthand/full-form dichloromethane wording does not split the `solvents` field.
 COF route extraction now also normalizes hyphenated `vapor-induced conversion`, `vapour-induced conversion`, and the common `VIC` acronym to the canonical `vapor induced conversion` route value, so film-growth procedures do not fragment polymerization route fields.
+COF interface extraction now also normalizes slash-form interface wording such as `air/water interface` and `liquid/liquid interface` to the canonical `air-water interface` and `liquid-liquid interface` values, so punctuation differences do not fragment interfacial growth records.
+COF temperature extraction now also captures compact Celsius wording such as `120°C` from real open-access synthesis paragraphs, so temperatures are not missed when authors omit the space before `°C`.
+COF route extraction now also preserves real-paper `Schiff base chemical reaction` wording as a polymerization route value, so open-access synthesis paragraphs that avoid the more specific condensation/polycondensation phrasing still contribute route evidence to the benchmark.
+COF linkage extraction now also treats real-paper `imine-based COF` wording as the canonical `imine` linkage value, so open-access abstracts that state the route first and the linkage in a follow-up sentence still contribute linkage evidence to the benchmark.

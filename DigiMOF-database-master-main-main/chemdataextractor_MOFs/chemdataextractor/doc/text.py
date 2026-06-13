@@ -13,6 +13,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from abc import abstractproperty
 import collections
+from collections.abc import Sequence
 import logging
 import re
 
@@ -122,7 +123,7 @@ class BaseText(BaseElement):
         return self.text
 
 
-class Text(collections.Sequence, BaseText):
+class Text(Sequence, BaseText):
     """A passage of text, comprising one or more sentences."""
 
     sentence_tokenizer = ChemSentenceTokenizer()

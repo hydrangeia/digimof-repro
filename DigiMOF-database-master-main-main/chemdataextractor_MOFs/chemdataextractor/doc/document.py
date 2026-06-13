@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 from abc import ABCMeta, abstractproperty
 import collections
+from collections.abc import Sequence
 import io
 import json
 import logging
@@ -34,7 +35,7 @@ log = logging.getLogger(__name__)
 
 
 @python_2_unicode_compatible
-class BaseDocument(six.with_metaclass(ABCMeta, collections.Sequence)):
+class BaseDocument(six.with_metaclass(ABCMeta, Sequence)):
     """Abstract base class for a Document."""
 
     def __repr__(self):
@@ -380,4 +381,3 @@ class Document(BaseDocument):
             html_lines.append(element._repr_html_())
         html_lines.append('</div>')
         return '\n'.join(html_lines)
-
