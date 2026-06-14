@@ -158,11 +158,21 @@ def normalized_item(source: dict, evidence_text: str, record: dict) -> dict:
 def heuristic_mof_fields(text: str) -> dict | None:
     names: list[str] = []
     patterns = [
-        r"\(MOF,\s*([^)]+)\)",
-        r"metal\s*(?:[-\u2010-\u2015]\s*)?organic framework\s*\(MOF\),\s*(.+?)" + MOF_CONTEXT_BOUNDARY,
+        (r"\(MOF,\s*([^)]+)\)", re.I),
+        (
+            r"(?i:metal\s*(?:[-\u2010-\u2015]\s*)?organic framework\s*\(MOF\),\s*)"
+            r"([A-Z{].+?)(?=,\s*(?:which|that|was|were|has|have|is|are|can|with|featuring)\b|;\s*|\.(?:\s+[A-Z]|$)|$)",
+            0,
+        ),
+        (
+            r"([A-Z](?=[A-Za-z0-9{}\[\]()/,+.\-\s]{1,80}?\d)"
+            r"[A-Za-z0-9{}\[\]()/,+.\-\s]{1,80}?)\s+"
+            r"(?i:is\s+(?:an?\s+)?(?:[^.]{0,120}?)metal\s*(?:[-\u2010-\u2015]\s*)?organic framework\s*\(MOF\))",
+            0,
+        ),
     ]
-    for pattern in patterns:
-        for match in re.finditer(pattern, text, flags=re.I):
+    for pattern, flags in patterns:
+        for match in re.finditer(pattern, text, flags=flags):
             name = clean_heuristic_name(match.group(1))
             if len(name) >= 3 and name not in names:
                 names.append(name)

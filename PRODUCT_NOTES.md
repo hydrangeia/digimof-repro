@@ -62,9 +62,9 @@ conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytes
 当前目标结果：
 
 ```text
-cases: 27/27 passed
-field recall: 219/219
-54 passed
+cases: 34/34 passed
+field recall: 246/246
+61 passed
 ```
 
 ## 下一步建议
@@ -113,3 +113,11 @@ COF interface extraction now also normalizes slash-form interface wording such a
 COF temperature extraction now also captures compact Celsius wording such as `120°C` from real open-access synthesis paragraphs, so temperatures are not missed when authors omit the space before `°C`.
 COF route extraction now also preserves real-paper `Schiff base chemical reaction` wording as a polymerization route value, so open-access synthesis paragraphs that avoid the more specific condensation/polycondensation phrasing still contribute route evidence to the benchmark.
 COF linkage extraction now also treats real-paper `imine-based COF` wording as the canonical `imine` linkage value, so open-access abstracts that state the route first and the linkage in a follow-up sentence still contribute linkage evidence to the benchmark.
+COF time extraction now also captures hyphenated duration wording such as `7-day growth` from real open-access vapor-induced conversion procedures, so the main growth duration is retained alongside shorter furnace hold times in experimental schedule paragraphs.
+MOF name extraction now also captures real-paper patterns such as `MIL-100 (Fe) is a highly porous metal-organic framework (MOF)` from open-access abstracts, so benchmark cases are not limited to the narrower `(MOF, Name)` and `metal-organic framework (MOF), Name` formulations.
+COF temperature extraction now ignores standalone Kelvin measurement values in mixed synthesis/characterization abstracts, so real-paper sentences like `300 K` magnetic characterization do not leak into synthesis conditions while genuine `room-temperature` synthesis cues are preserved.
+COF name extraction now ignores generic descriptive clauses such as `we here report on a new COF capable of ...` from real open-access abstracts, so synthesis summaries without an explicit framework identifier do not hallucinate long prose fragments as framework names.
+COF paragraph extraction now keeps real open-access abstracts that provide linkage or condition evidence even when no explicit framework identifier is given, instead of dropping the record solely because the abstract names the material only as `the COF`.
+COF name extraction now also preserves framework family notation from real open-access abstracts such as `imine-linked COFs, W-A-X (X = H, Cl, Br, I), was synthesized`, so descriptor-before-name plural wording does not drop valid synthesis names.
+COF monomer extraction now also captures real open-access `Using A and B, a family of ... COFs was synthesized` wording, so descriptor-before-name abstracts such as the W-A-X paper retain monomer evidence instead of only the family name and linkage.
+COF temperature extraction now ignores auxiliary precursor-powder setpoint temperatures when real vapor-induced conversion procedures also state the main furnace schedule, so side conditions like `80 °C (105 °C for BPyDCA, 110 °C for BPDA)` do not crowd out the synthesis temperatures that define the actual growth program.

@@ -411,6 +411,117 @@ def test_heuristic_cof_fields_real_article_compact_celsius():
     assert fields["time"] == ["72 hours"]
 
 
+def test_heuristic_cof_fields_real_article_hyphenated_growth_duration():
+    text = (
+        "PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films were grown on various "
+        "substrates by vapor-induced conversion in a CVD system. The tube furnace is "
+        "externally connected with a bubbler to hold a 20 ml deionized aqueous solution "
+        "of acetic acid (Vacid/Vwater = 9:1). The center heating zone was heated to "
+        "140 \u00b0C. After a 7-day growth, the central heating zone was heated to 180 "
+        "\u00b0C for 1 h. The furnace was then cooled to room temperature to obtain COF films."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert {"route": "vapor induced conversion"} in fields["polymerization_routes"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "water"} in fields["solvents"]
+    assert fields["temperature"] == ["140 \u00b0C", "180 \u00b0C", "room temperature"]
+    assert fields["time"] == ["7-day", "1 h"]
+
+
+def test_heuristic_cof_fields_real_article_ignores_auxiliary_powder_temperatures():
+    text = (
+        "PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films were grown on various "
+        "substrates by vapor-induced conversion in a CVD system. The center heating zone "
+        "was heated to 140 \u00b0C. Note that the temperature of the TPA (or BPyDCA, BPDA) "
+        "powders was controlled at \u223c80 \u00b0C (105 \u00b0C for BPyDCA, 110 \u00b0C for "
+        "BPDA) when the center heating zone reaches 140 \u00b0C. After a 7-day growth, the "
+        "central heating zone was heated to 180 \u00b0C for 1 h. The furnace was then cooled "
+        "to room temperature to obtain COF films."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert {"route": "vapor induced conversion"} in fields["polymerization_routes"]
+    assert fields["temperature"] == ["140 \u00b0C", "180 \u00b0C", "room temperature"]
+    assert fields["time"] == ["7-day", "1 h"]
+
+
+def test_heuristic_cof_fields_real_article_ignores_characterization_kelvin():
+    text = (
+        "We synthesized a pure organic non-metal crystalline covalent organic framework "
+        "TAPA-BTD-COF by bottom-up Schiff base chemical reaction. And this imine-based COF "
+        "is stable in aerobic condition and room-temperature. We discovered that this "
+        "TAPA-BTD-COF exhibited strong magneticity in 300 K generating magnetic hysteresis "
+        "loop in M-H characterization."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TAPA-BTD-COF"]
+    assert fields["polymerization_routes"] == [{"route": "Schiff base chemical reaction"}]
+    assert fields["linkages"] == [{"linkage": "imine"}]
+    assert fields["temperature"] == ["room temperature"]
+
+
+def test_heuristic_cof_fields_real_article_ignores_generic_new_cof_name():
+    text = (
+        "Covalent organic frameworks (COFs) have recently emerged as a new generation of "
+        "porous polymers combining molecular functionality with the robustness and structural "
+        "definition of crystalline solids. Drawing on the recent development of tailor-made "
+        "semiconducting COFs, we here report on a new COF capable of visible-light driven "
+        "hydrogen generation. The COF is based on hydrazone-linked functionalized triazine "
+        "and phenyl building blocks and adopts a layered structure with a honeycomb-type "
+        "lattice featuring mesopores of 3.8 nm and the highest surface area among all "
+        "hydrazone-based COFs reported to date."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert "names" not in fields
+    assert {"linkage": "hydrazone-linked"} in fields["linkages"]
+
+
+def test_heuristic_cof_fields_real_article_descriptor_before_family_name():
+    text = (
+        "Using a Wurster-type tetratopic amine (W-NH2) and a series of anthracene-based "
+        "dialdehydes bearing H, Cl, Br, or I at the 2-position, a family of imine-linked "
+        "COFs, W-A-X (X = H, Cl, Br, I), was synthesized, all displaying well-ordered porous "
+        "structures."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["W-A-X (X = H, Cl, Br, I)"]
+    assert fields["linkages"] == [{"linkage": "imine-linked"}]
+
+
+def test_heuristic_cof_fields_real_article_using_monomers_before_family_name():
+    text = (
+        "Using a Wurster-type tetratopic amine (W-NH2) and a series of anthracene-based "
+        "dialdehydes bearing H, Cl, Br, or I at the 2-position, a family of imine-linked "
+        "COFs, W-A-X (X = H, Cl, Br, I), was synthesized, all displaying well-ordered porous "
+        "structures."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["W-A-X (X = H, Cl, Br, I)"]
+    assert fields["linkages"] == [{"linkage": "imine-linked"}]
+    assert {"monomer": "Wurster-type tetratopic amine (W-NH2)", "role": "using"} in fields["monomers"]
+    assert {
+        "monomer": "series of anthracene-based dialdehydes bearing H, Cl, Br, or I at the 2-position",
+        "role": "using",
+    } in fields["monomers"]
+
+
 def test_heuristic_cof_temperature_variants_are_normalized():
     text = "TpPa-1 COF was synthesized at 85 \u2103 and then heated to 120 \u63b3C for 72 h."
     fields = heuristic_cof_fields(text)

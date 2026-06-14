@@ -62,6 +62,21 @@ def test_heuristic_mof_handles_metal_organic_without_hyphen():
     assert fields["synthesis_routes"] == [{"synthesis": "mechanochemical"}]
 
 
+def test_heuristic_mof_handles_name_before_mof_descriptor():
+    text = (
+        "MIL-100 (Fe) is a highly porous metal-organic framework (MOF), considered as "
+        "a promising carrier for drug delivery, and for gas separation and capture "
+        "applications. Herein, we report a green mechanochemical water immersion "
+        "approach to yield highly crystalline MIL100 (Fe) material."
+    )
+
+    fields = heuristic_mof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["MIL-100 (Fe)"]
+    assert fields["synthesis_routes"] == [{"synthesis": "mechanochemical"}]
+
+
 def test_mof_candidate_text_filters_generic_page_chrome():
     assert not is_mof_candidate_text("Official websites use .gov for a government organization.")
     assert is_mof_candidate_text("A calcium-based metal-organic framework was synthesized.")

@@ -424,7 +424,7 @@ conda run -n digimof-repro python -c "import pandas as pd; df=pd.read_json(r'H:\
 - 新增 `framework_miner` 外壳，并验证本地 HTML 样例可输出合并后的规范 JSONL。
 - 新增 `download_article_html.py`，验证 `PMC9085643` 可下载为本地 HTML 并再次解析成功。
 - 新增第一版 `framework_miner/cof.py` 并继续扩展，通过 `--framework cof` 抽取 COF 名称、monomer 候选、linkage、聚合路线、催化剂、碱、溶剂、界面、温度和时间。
-- 新增并执行测试，当前 54 条测试通过，覆盖本地 NTU-105 集成抽取、网页候选段落过滤、公式型 MOF 名称、`metal–organic` / `metal organic` 写法、无 `raw_record` 合并兼容、材料级去重、DOI 规范化、COF heuristic 抽取，以及 hydrazone、boronate ester、Knoevenagel、beta-ketoenamine 和 `reaction of A with B` 这类 COF 合成骨架，并额外校验 `℃` / mojibake 温度写法、常见溶剂/催化剂/碱缩写、气氛、界面和基底字段；benchmark 已开始纳入真实开放文本片段，如 TFPT-COF 和 TAPA-BTD-COF。
+- 新增并执行测试，当前 61 条测试通过，覆盖本地 NTU-105 集成抽取、网页候选段落过滤、公式型 MOF 名称、`metal–organic` / `metal organic` 写法、无 `raw_record` 合并兼容、材料级去重、DOI 规范化、COF heuristic 抽取，以及 hydrazone、boronate ester、Knoevenagel、beta-ketoenamine 和 `reaction of A with B` 这类 COF 合成骨架，并额外校验 `℃` / mojibake 温度写法、常见溶剂/催化剂/碱缩写、气氛、界面、基底字段、真实开放文本中的通用 COF 描述、descriptor-before-family-name 和 vapor-induced conversion 热程序段落；benchmark 已开始纳入真实开放文本片段，如 TFPT-COF、TAPA-BTD-COF、W-A-X、PyTTA 系列 COF films 和 MIL-100 (Fe)。
 - 增加 PDF 辅助脚本并用本地 DigiMOF 论文 PDF 跑通 1 页示例，生成 `sample_outputs/digimof_paper_pdf_demo.jsonl`。
 - 用 PMC9085643 MOF 网页验证 URL 合并模式可运行，生成 `sample_outputs/framework_miner_url_pmc9085643.jsonl`，输出 1 条去重后的 Ca-MOF 记录。
 - 从本地论文核对了 DigiMOF 的方法和数据规模描述。

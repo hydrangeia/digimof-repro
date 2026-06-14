@@ -183,7 +183,7 @@ conda run -n digimof-repro pytest tests -q -p no:cacheprovider --basetemp .pytes
 现在应该看到类似：
 
 ```text
-54 passed
+61 passed
 ```
 
 benchmark 也可以直接跑，不需要额外 shell 配置：
@@ -379,8 +379,8 @@ conda run -n digimof-repro python evaluate_framework_miner.py
 当前应该看到：
 
 ```text
-cases: 27/27 passed
-field recall: 219/219
+cases: 34/34 passed
+field recall: 246/246
 ```
 
 它还会生成：
@@ -393,7 +393,7 @@ benchmark/results.md
 怎么理解：
 
 - `cases` 是样例级别，通过表示这一条文献片段的预期字段都命中了。
-- `field recall` 是字段级别，例如 219/219 表示 219 个期望字段都抽到了。
+- `field recall` 是字段级别，例如 246/246 表示 246 个期望字段都抽到了。
 - 如果某个字段漏了，`missing` 里会列出来。
 
 为什么做这个：

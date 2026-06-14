@@ -199,7 +199,6 @@ TEMPERATURE_UNIT_VARIANTS = (
     "\u0431\u0443C",
     "\u0431\u0446",
     "\u9229\u5104K",
-    "K",
 )
 
 MONOMER_STOP_WORDS = {
@@ -220,6 +219,7 @@ MONOMER_STOP_WORDS_LOWER = {word.lower() for word in MONOMER_STOP_WORDS}
 TEMPERATURE_UNIT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS))
 CLEANSIUS_VARIANT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS[:-1]))
 ATMOSPHERE_LABEL_PATTERN = r"argon|nitrogen|air|vacuum|Ar|N2|N₂"
+AUXILIARY_COMPONENT_PATTERN = r"powders?|precursors?|monomers?|ligands?|dialdehydes?|amines?"
 
 
 def _normalize_atmosphere_value(value: str) -> str:
@@ -342,13 +342,34 @@ def is_cof_candidate_text(text: str) -> bool:
 
 def clean_cof_name(name: str) -> str:
     name = " ".join(name.split())
-    return name.strip(" \t\r\n,.;:()[]")
+    name = name.strip(" \t\r\n,.;:")
+    if (name.startswith("(") and name.endswith(")")) or (name.startswith("[") and name.endswith("]")):
+        name = name[1:-1].strip()
+    return name
+
+
+def _looks_like_cof_name(name: str) -> bool:
+    cleaned = clean_cof_name(name)
+    if not cleaned:
+        return False
+    if cleaned.lower() in {"cof", "cofs"}:
+        return False
+
+    residual = re.sub(r"\bCOFs?\b", " ", cleaned, flags=re.I)
+    residual = " ".join(residual.split()).strip(" -")
+    if not residual:
+        return False
+    if re.match(r"^(?:we|here|this|these|those|a|an|the)\b", residual, flags=re.I):
+        return False
+    return bool(re.search(r"[A-Z0-9]", residual))
 
 
 def clean_monomer_name(name: str) -> str:
-    name = re.sub(r"\b(?:the|a|an)\b", " ", name, flags=re.I)
+    name = re.sub(r"^\s*(?:the|a|an)\b\s*", "", name, flags=re.I)
     name = re.sub(r"\s+", " ", name)
-    name = name.strip(" \t\r\n,.;:()[]")
+    name = name.strip(" \t\r\n,.;:")
+    if (name.startswith("(") and name.endswith(")")) or (name.startswith("[") and name.endswith("]")):
+        name = name[1:-1].strip()
     return name
 
 
@@ -357,7 +378,7 @@ def heuristic_cof_names(text: str) -> list[str]:
     for pattern in COF_NAME_PATTERNS:
         for match in re.finditer(pattern, text):
             name = clean_cof_name(match.group(0))
-            if name.lower() not in {"cof", "cofs"}:
+            if _looks_like_cof_name(name):
                 _append_unique(names, name)
 
     for match in re.finditer(
@@ -365,19 +386,57 @@ def heuristic_cof_names(text: str) -> list[str]:
         text,
         flags=re.I,
     ):
-        _append_unique(names, clean_cof_name(match.group(1)))
+        name = clean_cof_name(match.group(1))
+        if _looks_like_cof_name(name):
+            _append_unique(names, name)
+    for match in re.finditer(
+        r"\b(?:[A-Za-z-]+linked\s+)?COFs?,\s*([^.;]+?)(?=,\s*(?:was|were|is|are|all|which|that|with)\b|;|\.|$)",
+        text,
+        flags=re.I,
+    ):
+        name = clean_cof_name(match.group(1))
+        if _looks_like_cof_name(name):
+            _append_unique(names, name)
     return names
+
+
+def _temperature_sentence_bounds(text: str, position: int) -> tuple[int, int]:
+    start = max(text.rfind(marker, 0, position) for marker in ".;!?")
+    end_candidates = [index for marker in ".;!?" if (index := text.find(marker, position)) != -1]
+    end = min(end_candidates) if end_candidates else len(text)
+    return start + 1, end
+
+
+def _is_auxiliary_component_temperature(text: str, start: int) -> bool:
+    sentence_start, sentence_end = _temperature_sentence_bounds(text, start)
+    sentence = text[sentence_start:sentence_end]
+    relative_start = start - sentence_start
+    pattern = (
+        r"\btemperature\s+of\s+(?:the\s+)?[^.;!?]{{0,120}}?\b(?:{})\b"
+        r"[^.;!?]{{0,80}}?\b(?:controlled|maintained|kept|held)\s+at\b"
+    ).format(AUXILIARY_COMPONENT_PATTERN)
+    for match in re.finditer(pattern, sentence, flags=re.I):
+        auxiliary_end = len(sentence)
+        when_match = re.search(r"\bwhen\b", sentence[match.end():], flags=re.I)
+        if when_match:
+            auxiliary_end = match.end() + when_match.start()
+        if match.end() <= relative_start < auxiliary_end:
+            return True
+    return False
 
 
 def _temperature_values(text: str) -> list[str]:
     values: list[str] = []
     pattern = r"\b-?\d+(?:\.\d+)?\s*{}(?=\s|[),.;:]|$)".format(TEMPERATURE_UNIT_PATTERN)
     for match in re.finditer(pattern, text):
+        if _is_auxiliary_component_temperature(text, match.start()):
+            continue
         normalized = " ".join(match.group(0).split())
         normalized = re.sub(r"\s*{}\Z".format(CLEANSIUS_VARIANT_PATTERN), " °C", normalized)
         _append_unique(values, normalized)
-    for match in re.finditer(r"\b(?:room|ambient)\s+temperature\b|\bat\s+RT\b|\bRT\b", text, flags=re.I):
+    for match in re.finditer(r"\b(?:room|ambient)[-\s]+temperature\b|\bat\s+RT\b|\bRT\b", text, flags=re.I):
         value = re.sub(r"^at\s+", "", " ".join(match.group(0).split()), flags=re.I)
+        value = re.sub(r"[-\s]+", " ", value)
         _append_unique(values, value)
     return values
 
@@ -386,7 +445,7 @@ def _time_values(text: str) -> list[str]:
     values: list[str] = []
     number_words = "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve"
     pattern = (
-        r"\b(?:\d+(?:\.\d+)?|{})\s*"
+        r"\b(?:\d+(?:\.\d+)?|{})\s*(?:-\s*)?"
         r"(?:min|minutes?|h|hours?|d|days?|weeks?|months?)\b|\bovernight\b"
     ).format(number_words)
     for match in re.finditer(pattern, text, flags=re.I):
@@ -443,13 +502,14 @@ def _substrate_values(text: str) -> list[str]:
     return values
 
 
-def _split_monomer_phrase(phrase: str) -> list[str]:
-    phrase = re.sub(
-        r"\b(?:in|at|under|using|with|by|through|via|to|for|affording|yielding)\b.*$",
-        "",
-        phrase,
-        flags=re.I,
-    )
+def _split_monomer_phrase(phrase: str, *, trim_conditions: bool = True) -> list[str]:
+    if trim_conditions:
+        phrase = re.sub(
+            r"\b(?:in|at|under|using|with|by|through|via|to|for|affording|yielding)\b.*$",
+            "",
+            phrase,
+            flags=re.I,
+        )
     phrase = re.sub(r"\s+", " ", phrase)
     parts = re.split(r"\s*(?:/|\+|\band\b|\bwith\b)\s*", phrase, flags=re.I)
     names: list[str] = []
@@ -479,6 +539,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
     monomers: list[dict] = []
     patterns = [
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
+        (
+            r"\busing\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)"
+            r"(?=,\s+(?:a\s+family\s+of\s+)?(?:[A-Za-z-]+linked\s+)?COFs?,)",
+            "using",
+        ),
         (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "from"),
         (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "between"),
         (r"\breaction\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "reaction"),
@@ -499,7 +564,7 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
         for match in re.finditer(pattern, text, flags=re.I):
             if len(match.groups()) == 2:
                 for group in match.groups():
-                    for name in _split_monomer_phrase(group):
+                    for name in _split_monomer_phrase(group, trim_conditions=role != "using"):
                         _append_monomer(monomers, name, role)
             else:
                 for name in _split_monomer_phrase(match.group(1)):
@@ -560,7 +625,7 @@ def heuristic_cof_fields(text: str) -> dict | None:
     if times:
         fields["time"] = times
 
-    if not fields or "names" not in fields:
+    if not fields:
         return None
     return fields
 
