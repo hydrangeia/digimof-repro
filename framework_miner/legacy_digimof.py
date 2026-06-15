@@ -56,6 +56,7 @@ MOF_CONTEXT_BOUNDARY = (
     r"(?=,\s*(?:which|that|was|were|has|have|is|are|can|with|featuring)\b"
     r"|;\s*|\.\s+[A-Z]|$)"
 )
+MOF_DESCRIPTOR_PATTERN = r"metal(?:[^A-Za-z0-9]{0,4})organic\s+framework"
 REQUEST_HEADERS = {"User-Agent": "framework-miner/0.1 (+https://pmc.ncbi.nlm.nih.gov/)"}
 
 
@@ -160,14 +161,18 @@ def heuristic_mof_fields(text: str) -> dict | None:
     patterns = [
         (r"\(MOF,\s*([^)]+)\)", re.I),
         (
-            r"(?i:metal\s*(?:[-\u2010-\u2015]\s*)?organic framework\s*\(MOF\),\s*)"
-            r"([A-Z{].+?)(?=,\s*(?:which|that|was|were|has|have|is|are|can|with|featuring)\b|;\s*|\.(?:\s+[A-Z]|$)|$)",
+            (
+                r"(?i:{}\s*\(MOF\),\s*)".format(MOF_DESCRIPTOR_PATTERN)
+                + r"([A-Z{].+?)(?=,\s*(?:which|that|was|were|has|have|is|are|can|with|featuring)\b|;\s*|\.(?:\s+[A-Z]|$)|$)"
+            ),
             0,
         ),
         (
-            r"([A-Z](?=[A-Za-z0-9{}\[\]()/,+.\-\s]{1,80}?\d)"
-            r"[A-Za-z0-9{}\[\]()/,+.\-\s]{1,80}?)\s+"
-            r"(?i:is\s+(?:an?\s+)?(?:[^.]{0,120}?)metal\s*(?:[-\u2010-\u2015]\s*)?organic framework\s*\(MOF\))",
+            (
+                r"([A-Z](?=[A-Za-z0-9{}\[\]()/,+.\-\s]{1,80}?\d)"
+                r"[A-Za-z0-9{}\[\]()/,+.\-\s]{1,80}?)\s+"
+                + r"(?i:is\s+(?:an?\s+)?(?:[^.]{{0,120}}?){}\s*\(MOF\))".format(MOF_DESCRIPTOR_PATTERN)
+            ),
             0,
         ),
         (
