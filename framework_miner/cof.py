@@ -93,6 +93,7 @@ COF_SUBSTRATE_TERMS = [
     "indium tin oxide glass",
     "FTO glass",
     "fluorine-doped tin oxide glass",
+    "Au(111)",
     "glass substrate",
     "quartz substrate",
     "silicon wafer",
@@ -175,6 +176,7 @@ COF_SOLVENT_ALIASES = [
 
 COF_ATMOSPHERE_TERMS = [
     "argon",
+    "hydrogen",
     "nitrogen",
     "air",
     "vacuum",
@@ -218,7 +220,7 @@ MONOMER_STOP_WORDS = {
 MONOMER_STOP_WORDS_LOWER = {word.lower() for word in MONOMER_STOP_WORDS}
 TEMPERATURE_UNIT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS))
 CLEANSIUS_VARIANT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS[:-1]))
-ATMOSPHERE_LABEL_PATTERN = r"argon|nitrogen|air|vacuum|Ar|N2|N₂"
+ATMOSPHERE_LABEL_PATTERN = r"argon|hydrogen|nitrogen|air|vacuum|Ar|H2|H₂|N2|N₂"
 AUXILIARY_COMPONENT_PATTERN = r"powders?|precursors?|monomers?|ligands?|dialdehydes?|amines?"
 
 
@@ -226,6 +228,8 @@ def _normalize_atmosphere_value(value: str) -> str:
     normalized = value.strip().lower()
     return {
         "ar": "argon",
+        "h2": "hydrogen",
+        "h₂": "hydrogen",
         "n2": "nitrogen",
         "n₂": "nitrogen",
     }.get(normalized, normalized)
@@ -455,6 +459,7 @@ def _time_values(text: str) -> list[str]:
 
 def _atmosphere_values(text: str) -> list[str]:
     values: list[str] = []
+    atmosphere_label_group = r"(?:{})".format(ATMOSPHERE_LABEL_PATTERN)
     patterns = [
         r"\bunder\s+(?:an?\s+)?(?:inert\s+)?(?P<atmosphere>{})\b".format(ATMOSPHERE_LABEL_PATTERN),
         r"\bunder\s+(?:an?\s+)?(?P<atmosphere>{})\s+atmosphere\b".format(ATMOSPHERE_LABEL_PATTERN),
@@ -466,6 +471,18 @@ def _atmosphere_values(text: str) -> list[str]:
     for pattern in patterns:
         for match in re.finditer(pattern, text, flags=re.I):
             _append_unique(values, _normalize_atmosphere_value(match.group("atmosphere")))
+    carrier_gas_patterns = [
+        r"\b(?P<series>{label}(?:\s*(?:,|/|and)\s*{label})+)\s+flow\b[^.;]{{0,120}}\bcarrier gas\b".format(
+            label=atmosphere_label_group
+        ),
+        r"\bflow\s+of\s+(?P<series>{label}(?:\s*(?:,|/|and)\s*{label})+)\b[^.;]{{0,120}}\bcarrier gas\b".format(
+            label=atmosphere_label_group
+        ),
+    ]
+    for pattern in carrier_gas_patterns:
+        for match in re.finditer(pattern, text, flags=re.I):
+            for atmosphere in re.findall(ATMOSPHERE_LABEL_PATTERN, match.group("series"), flags=re.I):
+                _append_unique(values, _normalize_atmosphere_value(atmosphere))
     for match in re.finditer(r"\bunder\s+(?:an?\s+)?inert\s+atmosphere\b", text, flags=re.I):
         _append_unique(values, "inert atmosphere")
     return values
@@ -478,15 +495,18 @@ def _substrate_values(text: str) -> list[str]:
         for index, (pattern, _normalized) in enumerate(COF_SUBSTRATE_ALIASES)
     )
     substrate_pattern = "|".join(re.escape(term) for term in sorted(COF_SUBSTRATE_TERMS, key=len, reverse=True))
+    substrate_end = r"(?=[\s,.;)]|$)"
     patterns = [
-        r"\b(?:grown|deposited|prepared|synthesized|formed|cast|coated)\s+(?:on|onto)\s+(?P<substrate>{})\b".format(substrate_pattern),
-        r"\b(?:grown|deposited|prepared|synthesized|formed|cast|coated)\s+(?:on|onto)\s+{}\b".format(
-            substrate_alias_pattern
+        r"\b(?:grown|deposited|prepared|synthesized|formed|cast|coated)\s+(?:on|onto)\s+(?P<substrate>{}){}".format(
+            substrate_pattern, substrate_end
         ),
-        r"\bsupported\s+on\s+(?P<substrate>{})\b".format(substrate_pattern),
-        r"\bsupported\s+on\s+{}\b".format(substrate_alias_pattern),
-        r"\b(?:on|onto)\s+(?P<substrate>{})\b".format(substrate_pattern),
-        r"\b(?:on|onto)\s+{}\b".format(substrate_alias_pattern),
+        r"\b(?:grown|deposited|prepared|synthesized|formed|cast|coated)\s+(?:on|onto)\s+{}{}".format(
+            substrate_alias_pattern, substrate_end
+        ),
+        r"\bsupported\s+on\s+(?P<substrate>{}){}".format(substrate_pattern, substrate_end),
+        r"\bsupported\s+on\s+{}{}".format(substrate_alias_pattern, substrate_end),
+        r"\b(?:on|onto)\s+(?P<substrate>{}){}".format(substrate_pattern, substrate_end),
+        r"\b(?:on|onto)\s+{}{}".format(substrate_alias_pattern, substrate_end),
     ]
     for pattern in patterns:
         for match in re.finditer(pattern, text, flags=re.I):

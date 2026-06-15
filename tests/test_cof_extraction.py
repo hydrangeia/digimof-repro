@@ -145,6 +145,38 @@ def test_heuristic_cof_fields_hydrazone_room_temperature():
     assert fields["time"] == ["three days"]
 
 
+def test_heuristic_cof_fields_real_carrier_gas_flow():
+    text = (
+        "PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films were grown on various "
+        "substrates by vapor-induced conversion in a CVD system. The tube furnace "
+        "is externally connected with a bubbler to hold a 20 ml deionized aqueous "
+        "solution of acetic acid (Vacid/Vwater = 9:1) and a hydrogen and argon flow "
+        "of 10 sccm and 10 sccm is used as carrier gas."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert {"route": "vapor induced conversion"} in fields["polymerization_routes"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "water"} in fields["solvents"]
+    assert {"atmosphere": "hydrogen"} in fields["atmospheres"]
+    assert {"atmosphere": "argon"} in fields["atmospheres"]
+
+
+def test_heuristic_cof_fields_real_surface_substrate():
+    text = (
+        "Here, we present syntheses of two-dimensional and liner COFs substructures "
+        "linked with 1,4-disilabenzene (C4Si2) by co-depositing silicon atoms and "
+        "bromo-substituted poly aromatic hydrocarbons on Au(111)."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["substrates"] == [{"substrate": "Au(111)"}]
+
+
 def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "

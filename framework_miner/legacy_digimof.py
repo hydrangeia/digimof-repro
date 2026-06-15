@@ -170,6 +170,18 @@ def heuristic_mof_fields(text: str) -> dict | None:
             r"(?i:is\s+(?:an?\s+)?(?:[^.]{0,120}?)metal\s*(?:[-\u2010-\u2015]\s*)?organic framework\s*\(MOF\))",
             0,
         ),
+        (
+            r"(?i:\b(?:we\s+)?(?:prepared|synthesized|obtained|formed|isolated)\s+)"
+            r"([A-Z][A-Za-z0-9(){}\[\]/,+.\-]{1,60}MOF(?:\s*\([^)]+\))?)"
+            r"(?=\s+(?:using|via|by|through|from|under|with|at|in)\b|[,.;\)]|$)",
+            0,
+        ),
+        (
+            r"([A-Z][A-Za-z0-9(){}\[\]/,+.\-]{1,60}MOF(?:\s*\([^)]+\))?)\s+"
+            r"(?i:(?:was|were|is|are)\s+(?:prepared|synthesized|obtained|formed|isolated))"
+            r"(?=\s+(?:using|via|by|through|from|under|with|at|in)\b|[,.;\)]|$)",
+            0,
+        ),
     ]
     for pattern, flags in patterns:
         for match in re.finditer(pattern, text, flags=flags):
