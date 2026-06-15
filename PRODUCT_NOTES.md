@@ -124,3 +124,7 @@ COF temperature extraction now ignores auxiliary precursor-powder setpoint tempe
 MOF name extraction now also preserves direct framework identifiers in real experimental paragraphs such as `We prepared CaNDC-MOF using a solvothermal synthesis method`, so open-access procedures no longer require the `metal-organic framework (MOF)` descriptor scaffold before the synthesis name is kept.
 COF atmosphere extraction now also preserves real-paper carrier-gas composition wording such as `hydrogen and argon flow ... used as carrier gas`, so open-access vapor-induced conversion procedures retain scoped gas-condition evidence instead of dropping it.
 COF substrate extraction now also preserves explicit metal-surface wording such as `on Au(111)` from real open-access on-surface synthesis abstracts, so narrow experimental paragraphs still contribute substrate evidence even when they omit the usual solvent/temperature condition bundle.
+
+## 2026-06-16 note
+
+MOF name extraction now also preserves formula-style framework identifiers from real open-access summary paragraphs such as `The solvothermal reaction ... gave rise to a metal-organic framework (MOF), {(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 路1.1H 2 O`, so route-first literature wording no longer drops the framework name when the descriptor introduces the identifier after the synthesis clause.
