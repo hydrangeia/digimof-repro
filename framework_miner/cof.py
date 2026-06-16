@@ -25,6 +25,7 @@ COF_PARAGRAPH_TERMS = [
 COF_ROUTE_TERMS = [
     "Suzuki polymerization",
     "Suzuki coupling",
+    "azomethine coupling",
     "Schiff base reaction",
     "Schiff-base reaction",
     "Schiff base chemical reaction",
@@ -107,6 +108,7 @@ COF_SUBSTRATE_ALIASES = [
     (r"ITO(?:\s+glass|\s+substrate)?", "ITO glass"),
     (r"fluorine[\s-]+doped\s+tin\s+oxide(?:\s*\(FTO\))?(?:\s+glass|\s+substrate)?", "FTO glass"),
     (r"FTO(?:\s+glass|\s+substrate)?", "FTO glass"),
+    (r"(?:[A-Za-z-]+\s+){0,3}Au\(111\)(?:\s+surface)?", "Au(111)"),
 ]
 
 COF_CATALYST_TERMS = [
@@ -162,6 +164,7 @@ COF_SOLVENT_TERMS = [
 ]
 
 COF_SOLVENT_ALIASES = [
+    (r"\baqueous(?:\s+\w+){0,2}\s+solution\b", "water"),
     (r"\bMeCN\b", "acetonitrile"),
     (r"\bCH3CN\b", "acetonitrile"),
     (r"\bMeOH\b", "methanol"),
@@ -207,6 +210,12 @@ MONOMER_STOP_WORDS = {
     "argon",
     "nitrogen",
     "vacuum",
+    "investigated",
+    "characterized",
+    "studied",
+    "examined",
+    "analyzed",
+    "probed",
     "water",
     "toluene",
     "ethanol",
@@ -530,6 +539,12 @@ def _split_monomer_phrase(phrase: str, *, trim_conditions: bool = True) -> list[
             phrase,
             flags=re.I,
         )
+    phrase = re.sub(
+        r"\s+(?:and|,)\s+(?:investigated|characterized|studied|examined|analyzed|probed)\b.*$",
+        "",
+        phrase,
+        flags=re.I,
+    )
     phrase = re.sub(r"\s+", " ", phrase)
     parts = re.split(r"\s*(?:/|\+|\band\b|\bwith\b)\s*", phrase, flags=re.I)
     names: list[str] = []

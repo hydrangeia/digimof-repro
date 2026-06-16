@@ -177,6 +177,26 @@ def test_heuristic_cof_fields_real_surface_substrate():
     assert fields["substrates"] == [{"substrate": "Au(111)"}]
 
 
+def test_heuristic_cof_fields_real_azomethine_surface_growth():
+    text = (
+        "Two dimensional pi conjugated metal porphyrin covalent organic frameworks "
+        "were produced in aqueous solution on an iodine-modified Au(111) surface by "
+        "on site azomethine coupling of Fe(III) 5,10,15,20 tetrakis(4 aminophenyl)"
+        "porphyrin (FeTAPP) with terephthal dicarboxaldehyde and investigated in "
+        "detail using in-situ scanning tunneling microscopy."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert {"route": "azomethine coupling"} in fields["polymerization_routes"]
+    assert {"monomer": "Fe(III) 5,10,15,20 tetrakis(4 aminophenyl)porphyrin (FeTAPP)", "role": "coupling"} in fields["monomers"]
+    assert {"monomer": "terephthal dicarboxaldehyde", "role": "coupling"} in fields["monomers"]
+    assert {"monomer": "investigated", "role": "coupling"} not in fields["monomers"]
+    assert fields["solvents"] == [{"solvent": "water"}]
+    assert fields["substrates"] == [{"substrate": "Au(111)"}]
+
+
 def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "
