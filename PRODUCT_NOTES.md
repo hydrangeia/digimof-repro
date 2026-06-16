@@ -128,6 +128,7 @@ COF substrate extraction now also preserves explicit metal-surface wording such 
 ## 2026-06-16 note
 
 MOF name extraction now also preserves formula-style framework identifiers from real open-access summary paragraphs such as `The solvothermal reaction ... gave rise to a metal-organic framework (MOF), {(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 璺?.1H 2 O`, so route-first literature wording no longer drops the framework name when the descriptor introduces the identifier after the synthesis clause.
+COF condition extraction now ignores workup-specific timings, room-temperature drying/cooling mentions, and wash/storage solvents when a real experimental procedure already states the main reaction hold, so open-access TFPT-COF procedures retain `120 °C`, `72 h`, `mesitylene`, and `1,4-dioxane` without leaking `15 min`, `DMF`, `THF`, or `DCM` from post-synthesis handling.
 COF route extraction now also preserves real-paper `azomethine coupling` wording, and COF substrate extraction now recognizes decorated surface phrases such as `iodine-modified Au(111) surface`, so open-access on-surface porphyrin COF abstracts retain their core synthesis route and substrate evidence.
 COF monomer extraction now trims trailing narrative verbs such as `... and investigated in detail ...` from coupling clauses, so real open-access abstracts no longer leak non-reagent prose into the `monomers` field.
 

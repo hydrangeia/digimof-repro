@@ -197,6 +197,34 @@ def test_heuristic_cof_fields_real_azomethine_surface_growth():
     assert fields["substrates"] == [{"substrate": "Au(111)"}]
 
 
+def test_heuristic_cof_fields_real_tfpt_experimental_workup_precision():
+    text = (
+        "TFPT-COF To a Biotage 5 mL microwave vial 17.7 mg (0.044 mmol, 2.0 eq.) "
+        "of TFPT (1) and a stir bar was added. Then 18.6 mg (0.066 mmol, 3.0 eq.) "
+        "of 2,5-diethyoxy-terephthalohydrazide was added and the vial was temporally "
+        "sealed with a rubber septum. Subsequently, the vial was flushed three times "
+        "in argon/vacuum cycles. To the mixture 0.66 mL of mesitylene and 0.33 mL "
+        "of 1,4-dioxane were added and again degassed three times in argon/vacuum "
+        "cycles. In one shot 100 µL aqueous 6M acetic acid was added, the vial was "
+        "sealed and heated in a stirred oil bath with 120 °C (preheated) on a "
+        "heating stirrer for 72 h. After slow cooling to room temperature the vial "
+        "was opened and the whole mixture was centrifuged (3 x 15 min, 20000 rpm) "
+        "while being washed with DMF (1 x 7 mL) and THF (2 x 7 mL). The resulting "
+        "yellow precipitate was transferred to a storage vial with DCM, dried at "
+        "room temperature, then in vacuum and characterized by powder X-ray "
+        "diffraction."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TFPT-COF"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert fields["solvents"] == [{"solvent": "1,4-dioxane"}, {"solvent": "mesitylene"}]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["72 h"]
+
+
 def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "

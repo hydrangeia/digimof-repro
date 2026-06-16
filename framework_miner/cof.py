@@ -231,6 +231,10 @@ TEMPERATURE_UNIT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS))
 CLEANSIUS_VARIANT_PATTERN = "(?:{})".format("|".join(TEMPERATURE_UNIT_VARIANTS[:-1]))
 ATMOSPHERE_LABEL_PATTERN = r"argon|hydrogen|nitrogen|air|vacuum|Ar|H2|H₂|N2|N₂"
 AUXILIARY_COMPONENT_PATTERN = r"powders?|precursors?|monomers?|ligands?|dialdehydes?|amines?"
+WORKUP_TERM_PATTERN = (
+    r"centrifug(?:ed|ation)?|wash(?:ed|ing)?|filter(?:ed|ing)?|dried?|"
+    r"transferred|storage vial|characterized|opened|precipitate"
+)
 
 
 def _normalize_atmosphere_value(value: str) -> str:
@@ -283,17 +287,35 @@ def _base_values(text: str) -> list[str]:
     return values
 
 
+def _sentence_bounds(text: str, position: int) -> tuple[int, int]:
+    start = max(text.rfind(marker, 0, position) for marker in ".;!?")
+    end_candidates = [index for marker in ".;!?" if (index := text.find(marker, position)) != -1]
+    end = min(end_candidates) if end_candidates else len(text)
+    return start + 1, end
+
+
+def _sentence_contains_workup_terms(text: str, position: int) -> bool:
+    sentence_start, sentence_end = _sentence_bounds(text, position)
+    sentence = text[sentence_start:sentence_end]
+    return bool(re.search(r"\b(?:{})\b".format(WORKUP_TERM_PATTERN), sentence, flags=re.I))
+
+
 def _solvent_values(text: str) -> list[str]:
-    values = _find_terms(text, COF_SOLVENT_TERMS)
     normalized_values: list[str] = []
-    for value in values:
+    for value in _find_terms(text, COF_SOLVENT_TERMS):
         canonical = {
             "o-DCB": "1,2-dichlorobenzene",
             "DCM": "dichloromethane",
         }.get(value, value)
-        _append_unique(normalized_values, canonical)
+        for match in re.finditer(re.escape(value), text, flags=re.I):
+            if _sentence_contains_workup_terms(text, match.start()):
+                continue
+            _append_unique(normalized_values, canonical)
+            break
     for pattern, normalized in COF_SOLVENT_ALIASES:
-        for _match in re.finditer(pattern, text, flags=re.I):
+        for match in re.finditer(pattern, text, flags=re.I):
+            if _sentence_contains_workup_terms(text, match.start()):
+                continue
             _append_unique(normalized_values, normalized)
     return normalized_values
 
@@ -413,15 +435,8 @@ def heuristic_cof_names(text: str) -> list[str]:
     return names
 
 
-def _temperature_sentence_bounds(text: str, position: int) -> tuple[int, int]:
-    start = max(text.rfind(marker, 0, position) for marker in ".;!?")
-    end_candidates = [index for marker in ".;!?" if (index := text.find(marker, position)) != -1]
-    end = min(end_candidates) if end_candidates else len(text)
-    return start + 1, end
-
-
 def _is_auxiliary_component_temperature(text: str, start: int) -> bool:
-    sentence_start, sentence_end = _temperature_sentence_bounds(text, start)
+    sentence_start, sentence_end = _sentence_bounds(text, start)
     sentence = text[sentence_start:sentence_end]
     relative_start = start - sentence_start
     pattern = (
@@ -448,6 +463,8 @@ def _temperature_values(text: str) -> list[str]:
         normalized = re.sub(r"\s*{}\Z".format(CLEANSIUS_VARIANT_PATTERN), " °C", normalized)
         _append_unique(values, normalized)
     for match in re.finditer(r"\b(?:room|ambient)[-\s]+temperature\b|\bat\s+RT\b|\bRT\b", text, flags=re.I):
+        if _sentence_contains_workup_terms(text, match.start()):
+            continue
         value = re.sub(r"^at\s+", "", " ".join(match.group(0).split()), flags=re.I)
         value = re.sub(r"[-\s]+", " ", value)
         _append_unique(values, value)
@@ -462,6 +479,8 @@ def _time_values(text: str) -> list[str]:
         r"(?:min|minutes?|h|hours?|d|days?|weeks?|months?)\b|\bovernight\b"
     ).format(number_words)
     for match in re.finditer(pattern, text, flags=re.I):
+        if _sentence_contains_workup_terms(text, match.start()):
+            continue
         _append_unique(values, " ".join(match.group(0).split()))
     return values
 
