@@ -53,6 +53,7 @@ COF_ROUTE_TERMS = [
 COF_ROUTE_ALIASES = [
     (r"\bvapou?r[\s-]+induced\s+conversion\b", "vapor induced conversion"),
     (r"\bVIC\b", "vapor induced conversion"),
+    (r"\bUllmann(?:-like)?(?:\s+on-surface)?\s+(?:reaction|coupling)\b", "Ullmann coupling"),
 ]
 
 COF_LINKAGE_TERMS = [
@@ -476,7 +477,7 @@ def _time_values(text: str) -> list[str]:
     number_words = "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve"
     pattern = (
         r"\b(?:\d+(?:\.\d+)?|{})\s*(?:-\s*)?"
-        r"(?:min|minutes?|h|hours?|d|days?|weeks?|months?)\b|\bovernight\b"
+        r"(?:min|minutes?|h|hours?|days?|weeks?|months?)\b|\bovernight\b"
     ).format(number_words)
     for match in re.finditer(pattern, text, flags=re.I):
         if _sentence_contains_workup_terms(text, match.start()):
