@@ -599,6 +599,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             r"(?=,\s+(?:a\s+family\s+of\s+)?(?:[A-Za-z-]+linked\s+)?COFs?,)",
             "using",
         ),
+        (
+            r"\bco[\s-]?depositing\s+([A-Za-z0-9][^.;]+?)"
+            r"(?=\s+(?:on|onto|under|at|in|to|through|via|for|using|with|by|affording|yielding)\b|[.;]|$)",
+            "codeposition",
+        ),
         (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "from"),
         (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "between"),
         (r"\breaction\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "reaction"),

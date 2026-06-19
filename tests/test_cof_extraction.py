@@ -174,6 +174,11 @@ def test_heuristic_cof_fields_real_surface_substrate():
     fields = heuristic_cof_fields(text)
 
     assert fields is not None
+    assert {"monomer": "silicon atoms", "role": "codeposition"} in fields["monomers"]
+    assert {
+        "monomer": "bromo-substituted poly aromatic hydrocarbons",
+        "role": "codeposition",
+    } in fields["monomers"]
     assert fields["substrates"] == [{"substrate": "Au(111)"}]
 
 
