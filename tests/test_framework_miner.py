@@ -12,14 +12,14 @@ from framework_miner.legacy_digimof import (
 def test_heuristic_mof_name_keeps_decimal_hydrate():
     text = (
         "A metal-organic framework (MOF), {(H 3 O + ) 2 "
-        "[Ca(NDC)(C 2 H 5 O)(OH)]} 4 路1.1H2O, was synthesized "
+        "[Ca(NDC)(C 2 H 5 O)(OH)]} 4 ·1.1H2O, was synthesized "
         "under solvothermal conditions."
     )
 
     fields = heuristic_mof_fields(text)
 
     assert fields is not None
-    assert fields["names"] == ["{(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 路1.1H2O"]
+    assert fields["names"] == ["{(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 ·1.1H2O"]
     assert fields["synthesis_routes"] == [{"synthesis": "solvothermal"}]
 
 
@@ -69,7 +69,7 @@ def test_heuristic_mof_handles_direct_name_in_experimental_paragraph():
         "We prepared CaNDC-MOF using a solvothermal synthesis method. "
         "Calcium(II) acetylacetonate and H2NDC were mixed in an aqueous solution of ethanol "
         "with stirring for 60 min. The mixed solution was placed in a vial and sealed, then "
-        "kept in an oven at 100 掳C for 7 days."
+        "kept in an oven at 100 °C for 7 days."
     )
 
     fields = heuristic_mof_fields(text)
@@ -84,13 +84,13 @@ def test_heuristic_mof_handles_formula_name_after_descriptor():
         "The solvothermal reaction of a mixture of calcium acetylacetonate and "
         "1,4-naphthalenedicarboxylic acid (H 2 NDC) in a solution containing ethanol "
         "and distilled water gave rise to a metal-organic framework (MOF), "
-        "{(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 路1.1H 2 O."
+        "{(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 ·1.1H 2 O."
     )
 
     fields = heuristic_mof_fields(text)
 
     assert fields is not None
-    assert fields["names"] == ["{(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 路1.1H 2 O"]
+    assert fields["names"] == ["{(H 3 O + ) 2 [Ca(NDC)(C 2 H 5 O)(OH)]} 4 ·1.1H 2 O"]
     assert fields["synthesis_routes"] == [{"synthesis": "solvothermal"}]
 
 

@@ -11,7 +11,7 @@ SUZUKI_COF_TEXT = (
     "C-C bonded two-dimensional conjugated covalent organic framework films "
     "2DCCOF1 and 2DCCOF2 were synthesized from aryl diboronic ester and "
     "porphyrin monomer by Suzuki polymerization at a "
-    "water/toluene interface using Pd(PPh3)4 and K2CO3 under argon at 2 掳C "
+    "water/toluene interface using Pd(PPh3)4 and K2CO3 under argon at 2 °C "
     "for one month."
 )
 
@@ -105,7 +105,7 @@ def test_heuristic_cof_fields_imine_route():
     text = (
         "An imine-linked PyTTA-TPA-COF was obtained by Schiff base "
         "polycondensation of PyTTA with TPA in mesitylene and 1,4-dioxane "
-        "at 120 掳C for 72 h."
+        "at 120 °C for 72 h."
     )
 
     fields = heuristic_cof_fields(text)
@@ -256,7 +256,7 @@ def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "
         "and 2,3,6,7,10,11-hexahydroxytriphenylene through boronate ester "
-        "condensation in mesitylene and 1,4-dioxane at 85 掳C for 72 h."
+        "condensation in mesitylene and 1,4-dioxane at 85 °C for 72 h."
     )
 
     fields = heuristic_cof_fields(text)
@@ -277,7 +277,7 @@ def test_heuristic_cof_fields_knoevenagel_olefin_route():
     text = (
         "An olefin-linked COF-V was prepared by Knoevenagel condensation of "
         "1,3,5-triformylbenzene with 2,4,6-trimethyl-1,3,5-triazine using "
-        "piperidine in dioxane at 120 掳C for 3 days."
+        "piperidine in dioxane at 120 °C for 3 days."
     )
 
     fields = heuristic_cof_fields(text)
@@ -299,7 +299,7 @@ def test_heuristic_cof_fields_beta_ketoenamine_overnight():
         "A beta-ketoenamine-linked TpPa-1 COF was synthesized by "
         "Schiff-base condensation of 1,3,5-triformylphloroglucinol with "
         "p-phenylenediamine in mesitylene/dioxane with 6 M acetic acid "
-        "at 120 掳C for overnight."
+        "at 120 °C for overnight."
     )
 
     fields = heuristic_cof_fields(text)
@@ -321,7 +321,7 @@ def test_heuristic_cof_fields_reaction_wording():
     text = (
         "A beta-ketoenamine-linked TpPa-1 COF was obtained by the reaction "
         "of 1,3,5-triformylphloroglucinol with p-phenylenediamine in "
-        "mesitylene/dioxane with acetic acid at 120 掳C for 72 h."
+        "mesitylene/dioxane with acetic acid at 120 °C for 72 h."
     )
 
     fields = heuristic_cof_fields(text)
