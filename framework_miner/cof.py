@@ -600,6 +600,10 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             "using",
         ),
         (
+            r"\busing\s+([A-Za-z0-9][^.;]+?)\s+as\s+monomer\s+precursors?\b",
+            "using",
+        ),
+        (
             r"\bco[\s-]?depositing\s+([A-Za-z0-9][^.;]+?)"
             r"(?=\s+(?:on|onto|under|at|in|to|through|via|for|using|with|by|affording|yielding)\b|[.;]|$)",
             "codeposition",

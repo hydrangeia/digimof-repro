@@ -252,6 +252,34 @@ def test_heuristic_cof_fields_real_ullmann_surface_route_without_2d_time():
     assert "time" not in fields
 
 
+def test_heuristic_cof_fields_real_ullmann_surface_using_monomer_precursor():
+    text = (
+        "Relative to conventional wet-chemical synthesis techniques, on-surface "
+        "synthesis of organic networks in ultrahigh vacuum has few control "
+        "parameters. The molecular deposition rate and substrate temperature are "
+        "typically the only synthesis variables to be adjusted dynamically. Here "
+        "we demonstrate that reducing conditions in the vacuum environment can be "
+        "created and controlled without dedicated sources -- relying only on "
+        "backfilled hydrogen gas and ion gauge filaments -- and can dramatically "
+        "influence the Ullmann-like on-surface reaction used for synthesizing "
+        "two-dimensional covalent organic frameworks (2D COFs). Using tribromo "
+        "dimethylmethylene-bridged triphenylamine ((Br3)DTPA) as monomer "
+        "precursors, we find that atomic hydrogen blocks aryl-aryl bond formation."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["polymerization_routes"] == [{"route": "Ullmann coupling"}]
+    assert fields["monomers"] == [
+        {
+            "monomer": "tribromo dimethylmethylene-bridged triphenylamine ((Br3)DTPA)",
+            "role": "using",
+        }
+    ]
+    assert "time" not in fields
+
+
 def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "
