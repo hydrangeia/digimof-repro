@@ -57,6 +57,10 @@ MOF_CONTEXT_BOUNDARY = (
     r"|;\s*|\.\s+[A-Z]|$)"
 )
 MOF_DESCRIPTOR_PATTERN = r"metal(?:[^A-Za-z0-9]{0,4})organic\s+framework"
+COMMON_MOF_NAME_PATTERN = (
+    r"(?:ZIF|UiO|MIL|HKUST|IRMOF|PCN|DUT|NOTT|CAU|CPO|NU|NTU|UMCM)-?\d+(?:-\w+)?"
+    r"(?:\s*\([^)]+\))?"
+)
 REQUEST_HEADERS = {"User-Agent": "framework-miner/0.1 (+https://pmc.ncbi.nlm.nih.gov/)"}
 
 
@@ -185,6 +189,12 @@ def heuristic_mof_fields(text: str) -> dict | None:
             r"([A-Z][A-Za-z0-9(){}\[\]/,+.\-]{1,60}MOF(?:\s*\([^)]+\))?)\s+"
             r"(?i:(?:was|were|is|are)\s+(?:prepared|synthesized|obtained|formed|isolated))"
             r"(?=\s+(?:using|via|by|through|from|under|with|at|in)\b|[,.;\)]|$)",
+            0,
+        ),
+        (
+            r"\b({})\b(?=\s*,?\s*(?:constructed|prepared|synthesized|obtained|formed|isolated)\b)".format(
+                COMMON_MOF_NAME_PATTERN
+            ),
             0,
         ),
     ]

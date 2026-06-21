@@ -94,6 +94,20 @@ def test_heuristic_mof_handles_formula_name_after_descriptor():
     assert fields["synthesis_routes"] == [{"synthesis": "solvothermal"}]
 
 
+def test_heuristic_mof_handles_common_framework_name_without_descriptor():
+    text = (
+        "Metal-organic frameworks (MOFs) stand as a promising chemically-active host "
+        "scaffold for the encapsulation of functional guests. Herein, we show "
+        "simultaneous nanoconfinement of two fluorophores in the sodalite cages of "
+        "ZIF-8, constructed under ambient conditions through a simple one-pot reaction."
+    )
+
+    fields = heuristic_mof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["ZIF-8"]
+
+
 def test_mof_candidate_text_filters_generic_page_chrome():
     assert not is_mof_candidate_text("Official websites use .gov for a government organization.")
     assert is_mof_candidate_text("A calcium-based metal-organic framework was synthesized.")
