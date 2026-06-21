@@ -404,6 +404,7 @@ def clean_monomer_name(name: str) -> str:
     name = re.sub(r"^\s*(?:the|a|an)\b\s*", "", name, flags=re.I)
     name = re.sub(r"\s+", " ", name)
     name = name.strip(" \t\r\n,.;:")
+    name = re.sub(r"\s*\(\d+\)\s*$", "", name)
     if (name.startswith("(") and name.endswith(")")) or (name.startswith("[") and name.endswith("]")):
         name = name[1:-1].strip()
     return name
@@ -552,6 +553,7 @@ def _substrate_values(text: str) -> list[str]:
 
 
 def _split_monomer_phrase(phrase: str, *, trim_conditions: bool = True) -> list[str]:
+    phrase = re.sub(r"\s+and\s+(?:a\s+)?stir\s+bar\b.*$", "", phrase, flags=re.I)
     if trim_conditions:
         phrase = re.sub(
             r"\b(?:in|at|under|using|with|by|through|via|to|for|affording|yielding)\b.*$",
@@ -594,6 +596,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
     monomers: list[dict] = []
     patterns = [
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
+        (
+            r"\bof\s+([A-Za-z0-9][^.;]+?)\s+(?:and\s+(?:a\s+)?stir\s+bar\s+)?was\s+added\.\s+"
+            r"Then\s+[\s\S]{0,120}?\bof\s+([A-Za-z0-9][^.;]+?)\s+was\s+added\b",
+            "addition",
+        ),
         (
             r"\busing\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)"
             r"(?=,\s+(?:a\s+family\s+of\s+)?(?:[A-Za-z-]+linked\s+)?COFs?,)",

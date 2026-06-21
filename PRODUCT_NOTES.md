@@ -136,3 +136,4 @@ COF monomer extraction now trims trailing narrative verbs such as `... and inves
 COF monomer extraction now also preserves real-paper `Using tribromo ... as monomer precursors` wording from the Ullmann on-surface COF abstract, so monomer evidence is kept even when the article does not use the earlier `Using A and B, ... COFs` or `from A and B` patterns.
 
 Benchmark validation now rejects CJK mojibake in `benchmark/gold_cases.jsonl`, preventing corrupted inputs and equally corrupted expected values from producing a false green regression result.
+COF monomer extraction now also preserves real experimental reagent-addition wording such as `of TFPT (1) ... was added. Then ... of 2,5-diethyoxy-terephthalohydrazide was added`, so open-access procedures retain monomer evidence without leaking the adjacent `stir bar` helper text into the `monomers` field.

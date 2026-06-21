@@ -224,6 +224,8 @@ def test_heuristic_cof_fields_real_tfpt_experimental_workup_precision():
 
     assert fields is not None
     assert fields["names"] == ["TFPT-COF"]
+    assert {"monomer": "TFPT", "role": "addition"} in fields["monomers"]
+    assert {"monomer": "2,5-diethyoxy-terephthalohydrazide", "role": "addition"} in fields["monomers"]
     assert {"catalyst": "acetic acid"} in fields["catalysts"]
     assert fields["solvents"] == [{"solvent": "1,4-dioxane"}, {"solvent": "mesitylene"}]
     assert fields["temperature"] == ["120 °C"]
