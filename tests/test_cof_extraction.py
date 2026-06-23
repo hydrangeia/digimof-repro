@@ -282,6 +282,25 @@ def test_heuristic_cof_fields_real_ullmann_surface_using_monomer_precursor():
     assert "time" not in fields
 
 
+def test_heuristic_cof_fields_real_boronate_transesterification_reacting_pair():
+    text = (
+        "We synthesized COF-5 and COF-108 by reacting HHTP with BDBA or TBPM "
+        "based on literature procedures. The reversible transesterification reaction "
+        "helps reduce density of defects in the products thereby improving their crystallinity."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-5", "COF-108"]
+    assert fields["polymerization_routes"] == [{"route": "transesterification reaction"}]
+    assert fields["monomers"] == [
+        {"monomer": "HHTP", "role": "reacting"},
+        {"monomer": "BDBA", "role": "reacting"},
+        {"monomer": "TBPM", "role": "reacting"},
+    ]
+
+
 def test_heuristic_cof_fields_boronate_ester_route():
     text = (
         "Boronate ester COF-5 was synthesized from 1,4-benzenediboronic acid "

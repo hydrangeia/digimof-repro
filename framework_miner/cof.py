@@ -48,6 +48,7 @@ COF_ROUTE_TERMS = [
     "liquid-liquid interface",
     "liquid/liquid interface",
     "on-water surface",
+    "transesterification reaction",
 ]
 
 COF_ROUTE_ALIASES = [
@@ -552,7 +553,9 @@ def _substrate_values(text: str) -> list[str]:
     return values
 
 
-def _split_monomer_phrase(phrase: str, *, trim_conditions: bool = True) -> list[str]:
+def _split_monomer_phrase(
+    phrase: str, *, trim_conditions: bool = True, split_or: bool = False
+) -> list[str]:
     phrase = re.sub(r"\s+and\s+(?:a\s+)?stir\s+bar\b.*$", "", phrase, flags=re.I)
     if trim_conditions:
         phrase = re.sub(
@@ -568,7 +571,8 @@ def _split_monomer_phrase(phrase: str, *, trim_conditions: bool = True) -> list[
         flags=re.I,
     )
     phrase = re.sub(r"\s+", " ", phrase)
-    parts = re.split(r"\s*(?:/|\+|\band\b|\bwith\b)\s*", phrase, flags=re.I)
+    separator = r"\s*(?:/|\+|\band\b|\bwith\b{})\s*".format(r"|\bor\b" if split_or else "")
+    parts = re.split(separator, phrase, flags=re.I)
     names: list[str] = []
     for part in parts:
         name = clean_monomer_name(part)
@@ -616,6 +620,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             "codeposition",
         ),
         (r"\bfrom\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "from"),
+        (
+            r"\breacting\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)"
+            r"(?=\s+(?:based\s+on|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)",
+            "reacting",
+        ),
         (r"\bbetween\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "between"),
         (r"\breaction\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "reaction"),
         (r"\breaction\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "reaction"),
@@ -635,7 +644,9 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
         for match in re.finditer(pattern, text, flags=re.I):
             if len(match.groups()) == 2:
                 for group in match.groups():
-                    for name in _split_monomer_phrase(group, trim_conditions=role != "using"):
+                    for name in _split_monomer_phrase(
+                        group, trim_conditions=role != "using", split_or=role == "reacting"
+                    ):
                         _append_monomer(monomers, name, role)
             else:
                 for name in _split_monomer_phrase(match.group(1)):
