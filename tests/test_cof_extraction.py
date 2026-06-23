@@ -914,3 +914,24 @@ def test_heuristic_cof_fields_real_article_imine_based_linkage():
     assert fields["names"] == ["TAPA-BTD-COF"]
     assert {"route": "Schiff base chemical reaction"} in fields["polymerization_routes"]
     assert {"linkage": "imine"} in fields["linkages"]
+
+
+def test_heuristic_cof_fields_real_tru_cof_experimental_reagent_list():
+    text = (
+        "For the synthesis of Tru-COFs, a Pyrex tube was filled with TDB "
+        "(187 mg, 0.4 mmol, 1.0 equiv), PTSA (76 mg, 0.4 mmol, 1.0 equiv), "
+        "and 10 mL dry toluene. The mixture was sonicated for 1 minute. Then, "
+        "the mixture was degassed through three freeze-pump-thaw cycles; the tube "
+        "was sealed under vacuum and heated at 105°C for 3 days."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["Tru-COFs"]
+    assert fields["monomers"] == [{"monomer": "TDB", "role": "reagent_list"}]
+    assert fields["catalysts"] == [{"catalyst": "p-toluenesulfonic acid"}]
+    assert fields["solvents"] == [{"solvent": "toluene"}]
+    assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
+    assert fields["temperature"] == ["105 °C"]
+    assert fields["time"] == ["3 days"]

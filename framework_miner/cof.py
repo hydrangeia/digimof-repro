@@ -126,7 +126,7 @@ COF_CATALYST_TERMS = [
 COF_CATALYST_ALIASES = [
     (r"\b(?:AcOH|HOAc)\b", "acetic acid"),
     (r"\bTFA\b", "trifluoroacetic acid"),
-    (r"\bp-?TsOH\b", "p-toluenesulfonic acid"),
+    (r"\b(?:p-?TsOH|PTSA)\b", "p-toluenesulfonic acid"),
 ]
 
 COF_BASE_TERMS = [
@@ -484,6 +484,9 @@ def _time_values(text: str) -> list[str]:
     for match in re.finditer(pattern, text, flags=re.I):
         if _sentence_contains_workup_terms(text, match.start()):
             continue
+        sentence_start, sentence_end = _sentence_bounds(text, match.start())
+        if re.search(r"\bsonicat(?:ed|ion)\b", text[sentence_start:sentence_end], flags=re.I):
+            continue
         _append_unique(values, " ".join(match.group(0).split()))
     return values
 
@@ -600,6 +603,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
     monomers: list[dict] = []
     patterns = [
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
+        (
+            r"\b(?:tube|flask|vial)\s+was\s+filled\s+with\s+([A-Za-z0-9][A-Za-z0-9_-]*)\s*"
+            r"\([^)]*\)\s*,\s*(?:PTSA|p-?TsOH|p-toluenesulfonic acid)\b",
+            "reagent_list",
+        ),
         (
             r"\bof\s+([A-Za-z0-9][^.;]+?)\s+(?:and\s+(?:a\s+)?stir\s+bar\s+)?was\s+added\.\s+"
             r"Then\s+[\s\S]{0,120}?\bof\s+([A-Za-z0-9][^.;]+?)\s+was\s+added\b",
