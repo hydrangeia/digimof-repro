@@ -108,6 +108,21 @@ def test_heuristic_mof_handles_common_framework_name_without_descriptor():
     assert fields["names"] == ["ZIF-8"]
 
 
+def test_heuristic_mof_handles_denoted_as_family_name_in_experimental_paragraph():
+    text = (
+        "Modulated Hydrothermal Synthesis of M-MOF-808_H2O. "
+        "MClO2·8H2O (M = Hf/Zr) and H3BTC were dissolved in H2O/acetic acid. "
+        "The resulting solution was refluxed at 100 °C for 37 h. "
+        "The as-obtained material, denoted as M-MOF-808_H2O, was activated at 100 °C."
+    )
+
+    fields = heuristic_mof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["M-MOF-808_H2O"]
+    assert fields["synthesis_routes"] == [{"synthesis": "hydrothermal"}]
+
+
 def test_mof_candidate_text_filters_generic_page_chrome():
     assert not is_mof_candidate_text("Official websites use .gov for a government organization.")
     assert is_mof_candidate_text("A calcium-based metal-organic framework was synthesized.")

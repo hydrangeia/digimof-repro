@@ -197,6 +197,12 @@ def heuristic_mof_fields(text: str) -> dict | None:
             ),
             0,
         ),
+        (
+            r"(?i:\bdenoted\s+as\s+)"
+            r"([A-Z][A-Za-z0-9(){}\[\]/,+.\-_]{1,60}MOF[A-Za-z0-9(){}\[\]/,+.\-_]{0,60})"
+            r"(?=\s*[,.;]|$)",
+            0,
+        ),
     ]
     for pattern, flags in patterns:
         for match in re.finditer(pattern, text, flags=flags):
