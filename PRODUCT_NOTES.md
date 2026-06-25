@@ -151,3 +151,5 @@ COF name extraction now avoids hallucinating nested identifiers such as `COF-1` 
 A local HTML review-report layer is now available through `framework_miner.cli --html-output`. It renders MOF and COF extraction records into a single user-facing page with summary metrics, framework filters, search, normalized fields, review labels, and evidence snippets. This is the first rough product surface for feedback: users can open the HTML file directly instead of reading JSONL.
 
 The intended feedback loop is now: run extraction on a real PDF/HTML article, share the generated report, and ask reviewers to mark wrong fields, missing synthesis information, and non-synthesis evidence leakage. The parser remains heuristic, so the report is positioned as an auditable extraction draft rather than an automatic final database.
+
+COF name extraction now also expands real shared-suffix framework lists such as `PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films` into individual COF names, so vapor-induced conversion Methods paragraphs retain all reported framework identifiers instead of only the final list item.

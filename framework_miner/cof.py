@@ -413,6 +413,18 @@ def clean_monomer_name(name: str) -> str:
 
 def heuristic_cof_names(text: str) -> list[str]:
     names: list[str] = []
+
+    for match in re.finditer(
+        r"\b([A-Z][A-Za-z0-9]+(?:-[A-Za-z0-9]+)+(?:\s*,\s*(?:and\s+)?[A-Z][A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)+)"
+        r"\s+COFs?\s+(?:films?|powders?|nanosheets?|frameworks?)\b",
+        text,
+        flags=re.I,
+    ):
+        for raw_name in re.split(r"\s*,\s*(?:and\s+)?", match.group(1)):
+            name = clean_cof_name(raw_name + " COF")
+            if _looks_like_cof_name(name):
+                _append_unique(names, name)
+
     for pattern in COF_NAME_PATTERNS:
         for match in re.finditer(pattern, text):
             name = clean_cof_name(match.group(0))

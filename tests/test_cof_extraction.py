@@ -952,3 +952,27 @@ def test_heuristic_cof_fields_real_tru_cof_experimental_reagent_list():
     assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
     assert fields["temperature"] == ["105 °C"]
     assert fields["time"] == ["3 days"]
+
+
+def test_heuristic_cof_fields_real_vic_shared_suffix_names():
+    text = (
+        "PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films were grown "
+        "on various substrates by vapor-induced conversion in a CVD system. "
+        "The tube furnace is externally connected with a bubbler to hold a "
+        "20 ml deionized aqueous solution of acetic acid (Vacid/Vwater = 9:1) "
+        "and a hydrogen and argon flow of 10 sccm and 10 sccm is used as "
+        "carrier gas. The center heating zone was heated to 140 \u00b0C. After "
+        "a 7-day growth, the central heating zone was heated to 180 \u00b0C for "
+        "1 h. The furnace was then cooled to room temperature to obtain COF films."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["PyTTA-TPA COF", "PyTTA-BPyDCA COF", "PyTTA-BPDA COF"]
+    assert {"route": "vapor induced conversion"} in fields["polymerization_routes"]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"atmosphere": "hydrogen"} in fields["atmospheres"]
+    assert {"atmosphere": "argon"} in fields["atmospheres"]
+    assert fields["temperature"] == ["140 \u00b0C", "180 \u00b0C", "room temperature"]
+    assert fields["time"] == ["7-day", "1 h"]
