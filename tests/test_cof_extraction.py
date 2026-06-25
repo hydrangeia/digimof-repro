@@ -677,6 +677,23 @@ def test_heuristic_cof_fields_real_article_using_monomers_before_family_name():
         "role": "using",
     } in fields["monomers"]
 
+def test_heuristic_cof_fields_real_joa_cof_name_boundary():
+    text = (
+        "Joa-COF-1 was obtained as a greenish solid (92% yield) by "
+        "solvothermal condensation of terpyrenyl 1 and HBC 2 in a mixture "
+        "of 1,4-dioxane and mesitylene 2:1, v:v, at 120 \u00b0C for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["Joa-COF-1"]
+    assert {"route": "solvothermal"} in fields["polymerization_routes"]
+    assert {"monomer": "terpyrenyl 1", "role": "condensation"} in fields["monomers"]
+    assert {"monomer": "HBC 2", "role": "condensation"} in fields["monomers"]
+    assert fields["solvents"] == [{"solvent": "1,4-dioxane"}, {"solvent": "mesitylene"}]
+    assert fields["temperature"] == ["120 \u00b0C"]
+    assert fields["time"] == ["72 h"]
 
 def test_heuristic_cof_temperature_variants_are_normalized():
     text = "TpPa-1 COF was synthesized at 85 \u2103 and then heated to 120 \u63b3C for 72 h."

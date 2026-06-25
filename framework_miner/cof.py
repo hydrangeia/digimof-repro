@@ -191,8 +191,8 @@ COF_ATMOSPHERE_TERMS = [
 COF_NAME_PATTERNS = [
     r"\b[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+){1,4}\s+COF\b",
     r"\b(?:[A-Za-z0-9]+[-_]){1,5}COF[A-Za-z0-9-]*\b",
-    r"\b[A-Za-z0-9]*COF[A-Za-z0-9-]*\b",
-    r"\bCOF-\d+[A-Za-z0-9-]*\b",
+    r"(?<![A-Za-z0-9-])\b[A-Za-z0-9]*COF[A-Za-z0-9-]*\b",
+    r"(?<![A-Za-z0-9-])\bCOF-\d+[A-Za-z0-9-]*\b",
     r"\b2DCCOF\d+\b",
     r"\b3DCCOF\d+\b",
 ]

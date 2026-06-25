@@ -143,3 +143,5 @@ COF route and monomer extraction now also preserves real boronate-ester framewor
 COF experimental extraction now also preserves a leading monomer from narrow `tube/flask/vial was filled with A (...), PTSA (...)` reagent-list wording, normalizes `PTSA` to `p-toluenesulfonic acid`, and ignores sonication pretreatment durations so the open-access Tru-COF procedure retains its 3-day main reaction time without a false 1-minute synthesis hold.
 
 MOF name extraction now also preserves explicit family identifiers from experimental wording such as `denoted as M-MOF-808_H2O`, so open-access hydrothermal procedures retain the reported material name even when it contains underscores and is not repeated beside a full `metal-organic framework (MOF)` descriptor.
+
+COF name extraction now avoids hallucinating nested identifiers such as `COF-1` from longer real framework names like `Joa-COF-1`, while retaining the associated solvothermal condensation monomers, solvents, 120 °C condition, and 72 h hold from open-access Joa-COF-1 synthesis text.
