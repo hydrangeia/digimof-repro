@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from .legacy_digimof import iter_local_inputs, merge_items, parse_local_path, parse_url, write_jsonl
+from .report import write_html_report
 
 
 def iter_records(inputs: list[str], pages: int | None, max_chars: int | None, framework: str):
@@ -17,10 +18,19 @@ def iter_records(inputs: list[str], pages: int | None, max_chars: int | None, fr
                 yield from parse_local_path(path, pages=pages, max_chars=max_chars, framework=framework)
 
 
+def should_write_record(record: dict, mof_only: bool = False, framework_only: bool = False) -> bool:
+    if mof_only and not record.get("passes_mof_filter"):
+        return False
+    if framework_only and not (record.get("passes_mof_filter") or record.get("passes_framework_filter")):
+        return False
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Extract normalized framework records.")
     parser.add_argument("inputs", nargs="+", help="Files, directories, or URLs.")
     parser.add_argument("-o", "--output", type=Path, required=True, help="JSONL output path.")
+    parser.add_argument("--html-output", type=Path, help="Optional local HTML review report path.")
     parser.add_argument("--framework", choices=["mof", "cof", "all"], default="mof", help="Framework parser to run.")
     parser.add_argument("--pages", type=int, default=2, help="PDF pages to parse per file. Use 0 for all pages.")
     parser.add_argument("--max-chars", type=int, default=8000, help="Optional text cap per PDF. Use 0 for no cap.")
@@ -34,8 +44,16 @@ def main() -> None:
     records = iter_records(args.inputs, pages=pages, max_chars=max_chars, framework=args.framework)
     if not args.no_merge:
         records = merge_items(records)
-    count = write_jsonl(records, args.output, mof_only=args.mof_only, framework_only=args.framework_only)
+    output_records = [
+        record
+        for record in records
+        if should_write_record(record, mof_only=args.mof_only, framework_only=args.framework_only)
+    ]
+    count = write_jsonl(output_records, args.output)
     print("wrote {} records to {}".format(count, args.output))
+    if args.html_output:
+        write_html_report(output_records, args.html_output, jsonl_path=args.output)
+        print("wrote HTML report to {}".format(args.html_output))
 
 
 if __name__ == "__main__":

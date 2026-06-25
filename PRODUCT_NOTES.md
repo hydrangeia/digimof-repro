@@ -145,3 +145,9 @@ COF experimental extraction now also preserves a leading monomer from narrow `tu
 MOF name extraction now also preserves explicit family identifiers from experimental wording such as `denoted as M-MOF-808_H2O`, so open-access hydrothermal procedures retain the reported material name even when it contains underscores and is not repeated beside a full `metal-organic framework (MOF)` descriptor.
 
 COF name extraction now avoids hallucinating nested identifiers such as `COF-1` from longer real framework names like `Joa-COF-1`, while retaining the associated solvothermal condensation monomers, solvents, 120 °C condition, and 72 h hold from open-access Joa-COF-1 synthesis text.
+
+## 2026-06-25 product MVP note
+
+A local HTML review-report layer is now available through `framework_miner.cli --html-output`. It renders MOF and COF extraction records into a single user-facing page with summary metrics, framework filters, search, normalized fields, review labels, and evidence snippets. This is the first rough product surface for feedback: users can open the HTML file directly instead of reading JSONL.
+
+The intended feedback loop is now: run extraction on a real PDF/HTML article, share the generated report, and ask reviewers to mark wrong fields, missing synthesis information, and non-synthesis evidence leakage. The parser remains heuristic, so the report is positioned as an auditable extraction draft rather than an automatic final database.

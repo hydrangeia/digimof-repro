@@ -417,3 +417,42 @@ COF interface extraction now also normalizes slash-form interface wording such a
 COF temperature extraction now also captures compact Celsius wording such as `120°C` from real open-access synthesis paragraphs, so temperatures are not missed when authors omit the space before `°C`.
 COF route extraction now also preserves real-paper `Schiff base chemical reaction` wording as a polymerization route value, so open-access synthesis paragraphs that avoid the more specific condensation/polycondensation phrasing still keep an explicit route signal in JSONL output and benchmark results.
 COF linkage extraction now also treats real-paper `imine-based COF` wording as the canonical `imine` linkage value, so open-access abstracts that state the route first and the linkage in a follow-up sentence still contribute linkage evidence to JSONL output and benchmark results.
+
+## 22. 给别人试用的本地 HTML 报告
+
+现在可以把抽取结果生成成一个本地 HTML 页面。这个就是目前最像“产品”的入口：别人不需要看 JSONL，也不需要理解 DigiMOF，只要打开网页，看每条记录的字段和原文 evidence。
+
+推荐先用样例跑一次：
+
+```powershell
+conda run --no-capture-output -n digimof-repro python -m framework_miner.cli sample_inputs -o sample_outputs\framework_miner_all_samples.jsonl --html-output sample_outputs\framework_miner_all_samples_report.html --framework all --framework-only
+```
+
+然后直接打开：
+
+```text
+sample_outputs\framework_miner_all_samples_report.html
+```
+
+如果给一篇真实 PDF：
+
+```powershell
+conda run --no-capture-output -n digimof-repro python -m framework_miner.cli "downloaded_articles\A_Hydrazone_based_Covalent_Organic_Framework_for_Photocatalytic_Hydrogen_Production.pdf" -o sample_outputs\hydrazone_pdf.jsonl --html-output sample_outputs\hydrazone_pdf_report.html --framework cof --framework-only --pages 0 --max-chars 0 --no-merge
+```
+
+参数怎么理解：
+
+- `--html-output`：生成可以直接打开的报告页面。
+- `--framework all`：MOF 和 COF 都跑，适合给普通用户统一体验。
+- `--framework cof`：只看 COF，适合 COF 合成论文。
+- `--framework-only`：过滤掉不太像 MOF/COF 的候选记录。
+- `--no-merge`：保留段落级记录，适合人工审阅；不加它则会把同一材料的多个 evidence 合并，适合总览。
+
+目前建议给外部反馈者看的不是“最终数据库”，而是这个 HTML 报告。让他们重点反馈：
+
+- 哪些字段看起来对。
+- 哪些字段是 characterization、application 或 workup 混进来的。
+- 哪些合成关键信息缺了。
+- evidence 是否足够让人判断。
+
+一句话：这一步的目标是验证产品体验，不是宣称自动抽取已经完全准确。
