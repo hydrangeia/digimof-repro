@@ -153,3 +153,5 @@ A local HTML review-report layer is now available through `framework_miner.cli -
 The intended feedback loop is now: run extraction on a real PDF/HTML article, share the generated report, and ask reviewers to mark wrong fields, missing synthesis information, and non-synthesis evidence leakage. The parser remains heuristic, so the report is positioned as an auditable extraction draft rather than an automatic final database.
 
 COF name extraction now also expands real shared-suffix framework lists such as `PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films` into individual COF names, so vapor-induced conversion Methods paragraphs retain all reported framework identifiers instead of only the final list item.
+
+COF monomer extraction now also preserves real three-component polycondensation wording such as ZnP-Pz-DHTP-COF synthesis from ZnP, PzDA, and DHTA, while excluding the following molar-ratio clause from monomer evidence.

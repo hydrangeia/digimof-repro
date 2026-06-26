@@ -616,6 +616,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
     patterns = [
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
         (
+            r"\bthree-component\s+polycondensation\s+of\s+([A-Za-z0-9][^.;]+?)"
+            r"\s+with\s+a\s+molar\s+ratio\b",
+            "polycondensation_list",
+        ),
+        (
             r"\b(?:tube|flask|vial)\s+was\s+filled\s+with\s+([A-Za-z0-9][A-Za-z0-9_-]*)\s*"
             r"\([^)]*\)\s*,\s*(?:PTSA|p-?TsOH|p-toluenesulfonic acid)\b",
             "reagent_list",
@@ -656,12 +661,20 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
         (r"\bcondensing\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
         (r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polymerization"),
         (r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polymerization"),
-        (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
+        (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+(?!a\s+molar\s+ratio\b)([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
         (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
     ]
 
     for pattern, role in patterns:
         for match in re.finditer(pattern, text, flags=re.I):
+            if role == "polycondensation_list":
+                for part in re.split(r"\s*,\s+|\s+and\s+", match.group(1), flags=re.I):
+                    name = clean_monomer_name(part)
+                    if name and name.lower() not in MONOMER_STOP_WORDS_LOWER:
+                        _append_monomer(monomers, name, "polycondensation")
+                continue
+            if role == "polycondensation" and any(", " in group for group in match.groups()):
+                continue
             if len(match.groups()) == 2:
                 for group in match.groups():
                     for name in _split_monomer_phrase(

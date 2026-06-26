@@ -976,3 +976,27 @@ def test_heuristic_cof_fields_real_vic_shared_suffix_names():
     assert {"atmosphere": "argon"} in fields["atmospheres"]
     assert fields["temperature"] == ["140 \u00b0C", "180 \u00b0C", "room temperature"]
     assert fields["time"] == ["7-day", "1 h"]
+
+
+def test_heuristic_cof_fields_real_three_component_polycondensation_monomers():
+    text = (
+        "The ZnP-Pz-DHTP-COF was synthesised by the three-component "
+        "polycondensation of zinc 5,10,15,20-tetrakis(p-tetraphenylamino)"
+        "porphyrin (ZnP), pyrazine-2,5-dicarbaldehyde (PzDA) and "
+        "2,5-dihydroxyterephthalaldehyde (DHTA) with a molar ratio of "
+        "ZnP/PzDA/DHTA = 1/1/1 under solvothermal conditions in 86% yield."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["ZnP-Pz-DHTP-COF"]
+    assert fields["polymerization_routes"] == [{"route": "solvothermal"}]
+    assert fields["monomers"] == [
+        {
+            "monomer": "zinc 5,10,15,20-tetrakis(p-tetraphenylamino)porphyrin (ZnP)",
+            "role": "polycondensation",
+        },
+        {"monomer": "pyrazine-2,5-dicarbaldehyde (PzDA)", "role": "polycondensation"},
+        {"monomer": "2,5-dihydroxyterephthalaldehyde (DHTA)", "role": "polycondensation"},
+    ]
