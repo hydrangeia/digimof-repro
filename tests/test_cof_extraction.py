@@ -1000,3 +1000,33 @@ def test_heuristic_cof_fields_real_three_component_polycondensation_monomers():
         {"monomer": "pyrazine-2,5-dicarbaldehyde (PzDA)", "role": "polycondensation"},
         {"monomer": "2,5-dihydroxyterephthalaldehyde (DHTA)", "role": "polycondensation"},
     ]
+
+
+def test_heuristic_cof_fields_real_graphene_heterostructure_methods():
+    text = (
+        "Synthesized COF ETBC-TAPT-graphene heterostructure. The CVD-grown "
+        "graphene supported on a Cu substrate was put into a glass tube containing "
+        "44.9 mg of 4',4''',4''''',4'''''''-(1,2-ethenediylidene)tetrakis"
+        "[1,1'-biphenyl]-4-carboxaldehyde (ETBC, 98%), 28.3 mg of "
+        "2,4,6-tris(4-aminophenyl)-1,3,5-triazine (TAPT, 98%) and 0.45 mL "
+        "of mixed solvent of o-dichlorobenzene/n-butanol/12 M acetic acid "
+        "(v/v, 48:12:5). The glass tube was then flame-sealed and heated "
+        "at 120 °C for 1 day."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COFETBC-TAPT"]
+    assert fields["monomers"] == [
+        {
+            "monomer": "4',4''',4''''',4'''''''-(1,2-ethenediylidene)tetrakis[1,1'-biphenyl]-4-carboxaldehyde (ETBC)",
+            "role": "reagent_list",
+        },
+        {"monomer": "2,4,6-tris(4-aminophenyl)-1,3,5-triazine (TAPT)", "role": "reagent_list"},
+    ]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "1,2-dichlorobenzene"} in fields["solvents"]
+    assert {"solvent": "n-butanol"} in fields["solvents"]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["1 day"]

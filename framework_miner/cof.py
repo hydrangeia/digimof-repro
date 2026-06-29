@@ -306,6 +306,7 @@ def _solvent_values(text: str) -> list[str]:
     normalized_values: list[str] = []
     for value in _find_terms(text, COF_SOLVENT_TERMS):
         canonical = {
+            "o-dichlorobenzene": "1,2-dichlorobenzene",
             "o-DCB": "1,2-dichlorobenzene",
             "DCM": "dichloromethane",
         }.get(value, value)
@@ -405,6 +406,7 @@ def clean_monomer_name(name: str) -> str:
     name = re.sub(r"^\s*(?:the|a|an)\b\s*", "", name, flags=re.I)
     name = re.sub(r"\s+", " ", name)
     name = name.strip(" \t\r\n,.;:")
+    name = re.sub(r"\(([A-Za-z0-9-]+),\s*\d+%\)", r"(\1)", name)
     name = re.sub(r"\s*\(\d+\)\s*$", "", name)
     if (name.startswith("(") and name.endswith(")")) or (name.startswith("[") and name.endswith("]")):
         name = name[1:-1].strip()
@@ -424,6 +426,16 @@ def heuristic_cof_names(text: str) -> list[str]:
             name = clean_cof_name(raw_name + " COF")
             if _looks_like_cof_name(name):
                 _append_unique(names, name)
+
+    for match in re.finditer(
+        r"\bCOF\s+([A-Z][A-Za-z0-9]+(?:-[A-Za-z0-9]+){1,4})(?=-graphene\b|\s+(?:graphene|powder|film)\b)",
+        text,
+    ):
+        name = clean_cof_name("COF" + match.group(1))
+        if _looks_like_cof_name(name):
+            _append_unique(names, name)
+
+
 
     for pattern in COF_NAME_PATTERNS:
         for match in re.finditer(pattern, text):
@@ -623,6 +635,12 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
         (
             r"\b(?:tube|flask|vial)\s+was\s+filled\s+with\s+([A-Za-z0-9][A-Za-z0-9_-]*)\s*"
             r"\([^)]*\)\s*,\s*(?:PTSA|p-?TsOH|p-toluenesulfonic acid)\b",
+            "reagent_list",
+        ),
+        (
+            r"\bglass\s+tube\s+containing\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9][^.;]+?\([A-Za-z0-9-]+,\s*\d+%\))"
+            r"\s*,\s*[\d.]+\s+mg\s+of\s+([A-Za-z0-9][^.;]+?\([A-Za-z0-9-]+,\s*\d+%\))"
+            r"\s+and\s+[\d.]+\s+mL\s+of\s+mixed\s+solvent\b",
             "reagent_list",
         ),
         (

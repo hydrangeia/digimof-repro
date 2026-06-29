@@ -155,3 +155,5 @@ The intended feedback loop is now: run extraction on a real PDF/HTML article, sh
 COF name extraction now also expands real shared-suffix framework lists such as `PyTTA-TPA, PyTTA-BPyDCA, and PyTTA-BPDA COF films` into individual COF names, so vapor-induced conversion Methods paragraphs retain all reported framework identifiers instead of only the final list item.
 
 COF monomer extraction now also preserves real three-component polycondensation wording such as ZnP-Pz-DHTP-COF synthesis from ZnP, PzDA, and DHTA, while excluding the following molar-ratio clause from monomer evidence.
+
+COF extraction now also preserves real Methods wording for COF ETBC-TAPT grown on graphene, including spaced PDF-extracted `COF ETBC-TAPT` names, reagent-list monomers with purity trimmed, and `o-dichlorobenzene` normalized to `1,2-dichlorobenzene`.
