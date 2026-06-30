@@ -1030,3 +1030,32 @@ def test_heuristic_cof_fields_real_graphene_heterostructure_methods():
     assert {"solvent": "n-butanol"} in fields["solvents"]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["1 day"]
+
+def test_heuristic_cof_fields_real_tppa1_flow_precursor_solutions():
+    text = (
+        "TpPa-1 COF was also synthesized using a continuous-flow setup "
+        "equipped with a perfluoroalkoxy alkane (PFA) tubing reactor. "
+        "In a typical experiment, two separate precursor solutions were "
+        "prepared: Solution A contained 126 mg of Tp dissolved in 13 mL "
+        "of diacetin, and Solution B contained 96 mg of Pa dissolved in "
+        "11 mL of diacetin and 2 mL of 3 M acetic acid. The two solutions "
+        "were delivered into a T-mixer at controlled flow rates of "
+        "0.1 mL min-1 each, ensuring a combined residence time of 30 min "
+        "in the reactor coil. The reactor coil was maintained at 150 °C "
+        "and 5 barg."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TpPa-1 COF"]
+    assert fields["polymerization_routes"] == [{"route": "continuous-flow synthesis"}]
+    assert fields["monomers"] == [
+        {"monomer": "Tp", "role": "precursor_solution"},
+        {"monomer": "Pa", "role": "precursor_solution"},
+    ]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert {"solvent": "diacetin"} in fields["solvents"]
+    assert fields["temperature"] == ["150 °C"]
+    assert fields["time"] == ["30 min"]
+

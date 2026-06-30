@@ -55,6 +55,7 @@ COF_ROUTE_ALIASES = [
     (r"\bvapou?r[\s-]+induced\s+conversion\b", "vapor induced conversion"),
     (r"\bVIC\b", "vapor induced conversion"),
     (r"\bUllmann(?:-like)?(?:\s+on-surface)?\s+(?:reaction|coupling)\b", "Ullmann coupling"),
+    (r"\bcontinuous[\s-]+flow(?:\s+synthesis|\s+setup)?\b", "continuous-flow synthesis"),
 ]
 
 COF_LINKAGE_TERMS = [
@@ -163,6 +164,7 @@ COF_SOLVENT_TERMS = [
     "chloroform",
     "dichloromethane",
     "DCM",
+    "diacetin",
 ]
 
 COF_SOLVENT_ALIASES = [
@@ -642,6 +644,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             r"\s*,\s*[\d.]+\s+mg\s+of\s+([A-Za-z0-9][^.;]+?\([A-Za-z0-9-]+,\s*\d+%\))"
             r"\s+and\s+[\d.]+\s+mL\s+of\s+mixed\s+solvent\b",
             "reagent_list",
+        ),
+        (
+            r"\bSolution\s+A\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b"
+            r"[\s\S]{0,180}?\bSolution\s+B\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b",
+            "precursor_solution",
         ),
         (
             r"\bof\s+([A-Za-z0-9][^.;]+?)\s+(?:and\s+(?:a\s+)?stir\s+bar\s+)?was\s+added\.\s+"
