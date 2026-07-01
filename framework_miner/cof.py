@@ -156,6 +156,7 @@ COF_SOLVENT_TERMS = [
     "n-butanol",
     "o-dichlorobenzene",
     "1,2-dichlorobenzene",
+    "butanol",
     "o-DCB",
     "DMF",
     "DMAc",
@@ -409,6 +410,7 @@ def clean_monomer_name(name: str) -> str:
     name = re.sub(r"\s+", " ", name)
     name = name.strip(" \t\r\n,.;:")
     name = re.sub(r"\(([A-Za-z0-9-]+),\s*\d+%\)", r"(\1)", name)
+    name = re.sub(r"\s*\([^)]*\d+(?:\.\d+)?\s*(?:mg|mmol|mol|equiv|eq\.)[^)]*\)\s*$", "", name, flags=re.I)
     name = re.sub(r"\s*\(\d+\)\s*$", "", name)
     if (name.startswith("(") and name.endswith(")")) or (name.startswith("[") and name.endswith("]")):
         name = name[1:-1].strip()
@@ -509,7 +511,9 @@ def _time_values(text: str) -> list[str]:
     ).format(number_words)
     for match in re.finditer(pattern, text, flags=re.I):
         if _sentence_contains_workup_terms(text, match.start()):
-            continue
+            sentence_start, sentence_end = _sentence_bounds(text, match.start())
+            if not re.search(r"\b(?:reaction|mixture)\s+was\s+heated\b", text[sentence_start:sentence_end], flags=re.I):
+                continue
         sentence_start, sentence_end = _sentence_bounds(text, match.start())
         if re.search(r"\bsonicat(?:ed|ion)\b", text[sentence_start:sentence_end], flags=re.I):
             continue
@@ -545,6 +549,8 @@ def _atmosphere_values(text: str) -> list[str]:
                 _append_unique(values, _normalize_atmosphere_value(atmosphere))
     for match in re.finditer(r"\bunder\s+(?:an?\s+)?inert\s+atmosphere\b", text, flags=re.I):
         _append_unique(values, "inert atmosphere")
+    for match in re.finditer(r"\bevacuated\b[^.;]{0,120}\bflame[ -]?sealed\b", text, flags=re.I):
+        _append_unique(values, "vacuum")
     return values
 
 
@@ -651,6 +657,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             "precursor_solution",
         ),
         (
+            r"\bcharged\s+with\s+([A-Za-z0-9][^.;]+?\[Co\(TAP\)\]\s*\([^)]*\)),\s*(BDA),\s*"
+            r"([A-Za-z0-9][^.;]+?)\s*\([^)]*mmol[^)]*\),\s*1,2-dichlorobenzene\b",
+            "charged_reagent_list",
+        ),
+        (
             r"\bof\s+([A-Za-z0-9][^.;]+?)\s+(?:and\s+(?:a\s+)?stir\s+bar\s+)?was\s+added\.\s+"
             r"Then\s+[\s\S]{0,120}?\bof\s+([A-Za-z0-9][^.;]+?)\s+was\s+added\b",
             "addition",
@@ -699,6 +710,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
                         _append_monomer(monomers, name, "polycondensation")
                 continue
             if role == "polycondensation" and any(", " in group for group in match.groups()):
+                continue
+            if role == "charged_reagent_list":
+                for group in match.groups():
+                    for name in _split_monomer_phrase(group, trim_conditions=False):
+                        _append_monomer(monomers, name, "reagent_list")
                 continue
             if len(match.groups()) == 2:
                 for group in match.groups():

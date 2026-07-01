@@ -1059,3 +1059,41 @@ def test_heuristic_cof_fields_real_tppa1_flow_precursor_solutions():
     assert fields["temperature"] == ["150 °C"]
     assert fields["time"] == ["30 min"]
 
+
+
+def test_heuristic_cof_fields_real_cof_366_charged_reagent_list():
+    text = (
+        "The synthesis of these frameworks was carried out analogous to the "
+        "synthesis of the parent framework COF-366-Co. COF synthesis. A "
+        "Pyrex tube measuring 10 × 8 mm (o.d × i.d.) was charged with "
+        "5,10,15,20-tetrakis(4-aminophenyl)porphinato]cobalt [Co(TAP)] "
+        "(18 mg, 0.025 mmol), BDA, 2,5-dimethoxyterephthaldehyde/"
+        "2-fluoroterephthaldehyde/2,3,5,6-tetrafluoroterephthaldehyde "
+        "(0.075 mmol), 1,2-dichlorobenzene (1 mL), butanol (1 mL), "
+        "and 6 M aqueous acetic acid (0.25 mL). After sonication for "
+        "15 minutes the tube was flash frozen at 77 K (liquid N2 bath). "
+        "After one freeze-pump-thaw cycle the system was evacuated to an "
+        "internal pressure of 50 mtorr and flame sealed. The reaction was "
+        "heated at 120 ºC for 72 hours yielding a dark purple precipitate "
+        "at the bottom of the tube."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["COF-366-Co"]
+    assert fields["monomers"] == [
+        {
+            "monomer": "5,10,15,20-tetrakis(4-aminophenyl)porphinato]cobalt [Co(TAP)]",
+            "role": "reagent_list",
+        },
+        {"monomer": "BDA", "role": "reagent_list"},
+        {"monomer": "2,5-dimethoxyterephthaldehyde", "role": "reagent_list"},
+        {"monomer": "2-fluoroterephthaldehyde", "role": "reagent_list"},
+        {"monomer": "2,3,5,6-tetrafluoroterephthaldehyde", "role": "reagent_list"},
+    ]
+    assert {"catalyst": "acetic acid"} in fields["catalysts"]
+    assert fields["solvents"] == [{"solvent": "1,2-dichlorobenzene"}, {"solvent": "butanol"}]
+    assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["72 hours"]

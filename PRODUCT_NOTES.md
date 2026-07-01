@@ -158,3 +158,4 @@ COF monomer extraction now also preserves real three-component polycondensation 
 
 COF extraction now also preserves real Methods wording for COF ETBC-TAPT grown on graphene, including spaced PDF-extracted `COF ETBC-TAPT` names, reagent-list monomers with purity trimmed, and `o-dichlorobenzene` normalized to `1,2-dichlorobenzene`.
 COF extraction now also preserves real continuous-flow TpPa-1 Methods wording, including separate Solution A/B precursor monomers, diacetin solvent, acetic-acid catalyst, and 150 °C/30 min reactor conditions from an open-access flow-synthesis article.
+COF extraction now also preserves real charged-with COF-366-Co synthesis wording from an open OSTI accepted manuscript, including Co(TAP)/BDA/terephthaldehyde-list monomers, butanol solvent, evacuated/flame-sealed vacuum evidence, and `ºC` temperature normalization while ignoring the sonication pretreatment time.
