@@ -192,6 +192,12 @@ def heuristic_mof_fields(text: str) -> dict | None:
             0,
         ),
         (
+            r"(?i:\bfabricated\s+(?:an?\s+)?(?:\d+D\s+)?(?:monolayer\s+)?)"
+            r"([A-Z][A-Za-z0-9(){}\[\]/,+.\-\s]{1,80}MOF)"
+            r"(?=\s+(?:using|via|by|through|from|under|with|at|in|on)\b|[,.;\)]|$)",
+            0,
+        ),
+        (
             r"\b({})\b(?=\s*,?\s*(?:constructed|prepared|synthesized|obtained|formed|isolated)\b)".format(
                 COMMON_MOF_NAME_PATTERN
             ),

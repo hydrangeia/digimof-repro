@@ -123,6 +123,17 @@ def test_heuristic_mof_handles_denoted_as_family_name_in_experimental_paragraph(
     assert fields["synthesis_routes"] == [{"synthesis": "hydrothermal"}]
 
 
+def test_heuristic_mof_handles_fabricated_monolayer_name():
+    text = (
+        "Here we successfully fabricated a 2D monolayer Cu-dicyanoanthracene "
+        "(DCA) MOF with long-range order on an epitaxial graphene surface."
+    )
+
+    fields = heuristic_mof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["Cu-dicyanoanthracene (DCA) MOF"]
+
 def test_mof_candidate_text_filters_generic_page_chrome():
     assert not is_mof_candidate_text("Official websites use .gov for a government organization.")
     assert is_mof_candidate_text("A calcium-based metal-organic framework was synthesized.")
