@@ -551,6 +551,10 @@ def _atmosphere_values(text: str) -> list[str]:
         _append_unique(values, "inert atmosphere")
     for match in re.finditer(r"\bevacuated\b[^.;]{0,120}\bflame[ -]?sealed\b", text, flags=re.I):
         _append_unique(values, "vacuum")
+    for match in re.finditer(r"\bultrahigh\s+vacuum\b", text, flags=re.I):
+        _append_unique(values, "vacuum")
+    for match in re.finditer(r"\bbackfilled\s+hydrogen\s+gas\b", text, flags=re.I):
+        _append_unique(values, "hydrogen")
     return values
 
 

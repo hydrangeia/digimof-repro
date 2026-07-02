@@ -282,6 +282,27 @@ def test_heuristic_cof_fields_real_ullmann_surface_using_monomer_precursor():
     assert "time" not in fields
 
 
+def test_heuristic_cof_fields_real_ullmann_surface_atmosphere_conditions():
+    text = (
+        "Relative to conventional wet-chemical synthesis techniques, on-surface "
+        "synthesis of organic networks in ultrahigh vacuum has few control "
+        "parameters. The molecular deposition rate and substrate temperature are "
+        "typically the only synthesis variables to be adjusted dynamically. Here "
+        "we demonstrate that reducing conditions in the vacuum environment can be "
+        "created and controlled without dedicated sources -- relying only on "
+        "backfilled hydrogen gas and ion gauge filaments -- and can dramatically "
+        "influence the Ullmann-like on-surface reaction used for synthesizing "
+        "two-dimensional covalent organic frameworks (2D COFs)."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["polymerization_routes"] == [{"route": "Ullmann coupling"}]
+    assert fields["atmospheres"] == [{"atmosphere": "vacuum"}, {"atmosphere": "hydrogen"}]
+    assert "time" not in fields
+
+
 def test_heuristic_cof_fields_real_boronate_transesterification_reacting_pair():
     text = (
         "We synthesized COF-5 and COF-108 by reacting HHTP with BDBA or TBPM "
