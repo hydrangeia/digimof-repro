@@ -1118,3 +1118,22 @@ def test_heuristic_cof_fields_real_cof_366_charged_reagent_list():
     assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["72 hours"]
+
+
+def test_heuristic_cof_fields_real_tapa_btd_free_radical_monomer_precision():
+    text = (
+        "We synthesized a pure organic non-metal crystalline covalent organic framework "
+        "TAPA-BTD-COF by bottom-up Schiff base chemical reaction. And this imine-based "
+        "COF is stable in aerobic condition and room-temperature. Besides, since the COF "
+        "does not involve free-radical monomer in the processes of synthesis, we can also "
+        "exclude the origin of free-radical induced magnetism."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TAPA-BTD-COF"]
+    assert fields["polymerization_routes"] == [{"route": "Schiff base chemical reaction"}]
+    assert fields["linkages"] == [{"linkage": "imine"}]
+    assert fields["temperature"] == ["room temperature"]
+    assert "monomers" not in fields
