@@ -221,6 +221,8 @@ MONOMER_STOP_WORDS = {
     "examined",
     "analyzed",
     "probed",
+    "monomer",
+    "monomers",
     "water",
     "toluene",
     "ethanol",

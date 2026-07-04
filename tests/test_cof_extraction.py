@@ -1137,3 +1137,18 @@ def test_heuristic_cof_fields_real_tapa_btd_free_radical_monomer_precision():
     assert fields["linkages"] == [{"linkage": "imine"}]
     assert fields["temperature"] == ["room temperature"]
     assert "monomers" not in fields
+
+def test_heuristic_cof_fields_real_ullmann_endpoint_monomer_precision():
+    text = (
+        "Using scanning tunneling microscopy and spectroscopy (STM/STS), we show "
+        "that changes in the electronic states through this oligomer sequence "
+        "provide an insightful view of the 2D-COF (synthesized in the absence of "
+        "atomic hydrogen) as the endpoint in an evolution of electronic structures "
+        "from the monomer."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["2D-COF"]
+    assert "monomers" not in fields
