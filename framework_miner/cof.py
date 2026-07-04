@@ -514,7 +514,12 @@ def _time_values(text: str) -> list[str]:
     for match in re.finditer(pattern, text, flags=re.I):
         if _sentence_contains_workup_terms(text, match.start()):
             sentence_start, sentence_end = _sentence_bounds(text, match.start())
-            if not re.search(r"\b(?:reaction|mixture)\s+was\s+heated\b", text[sentence_start:sentence_end], flags=re.I):
+            sentence = text[sentence_start:sentence_end]
+            if not re.search(
+                r"\b(?:reaction|mixture)\s+was\s+heated\b|\btransferred\s+into\s+oven\s+to\s+heat\b",
+                sentence,
+                flags=re.I,
+            ):
                 continue
         sentence_start, sentence_end = _sentence_bounds(text, match.start())
         if re.search(r"\bsonicat(?:ed|ion)\b", text[sentence_start:sentence_end], flags=re.I):
@@ -552,6 +557,8 @@ def _atmosphere_values(text: str) -> list[str]:
     for match in re.finditer(r"\bunder\s+(?:an?\s+)?inert\s+atmosphere\b", text, flags=re.I):
         _append_unique(values, "inert atmosphere")
     for match in re.finditer(r"\bevacuated\b[^.;]{0,120}\bflame[ -]?sealed\b", text, flags=re.I):
+        _append_unique(values, "vacuum")
+    for match in re.finditer(r"\b(?:vacuum\s+it|outgassed)\b[^.;]{0,120}\b(?:three|3)\s+times\b", text, flags=re.I):
         _append_unique(values, "vacuum")
     for match in re.finditer(r"\bultrahigh\s+vacuum\b", text, flags=re.I):
         _append_unique(values, "vacuum")
@@ -661,6 +668,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             r"\bSolution\s+A\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b"
             r"[\s\S]{0,180}?\bSolution\s+B\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b",
             "precursor_solution",
+        ),
+        (
+            r"\bFirst,\s+([A-Za-z0-9][^.;]+?\([^)]*[A-Za-z][^)]*\)\s*\([^)]*mg[^)]*\))\s+"
+            r"and\s+([A-Za-z0-9][^.;]+?\([^)]*mg[^)]*\))\s+ligands?\s+were\s+dispersed\b",
+            "ligand_dispersion",
         ),
         (
             r"\bcharged\s+with\s+([A-Za-z0-9][^.;]+?\[Co\(TAP\)\]\s*\([^)]*\)),\s*(BDA),\s*"

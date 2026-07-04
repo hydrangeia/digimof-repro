@@ -1152,3 +1152,31 @@ def test_heuristic_cof_fields_real_ullmann_endpoint_monomer_precision():
     assert fields is not None
     assert fields["names"] == ["2D-COF"]
     assert "monomers" not in fields
+
+
+def test_heuristic_cof_fields_real_tppa1_ligand_dispersion_conditions():
+    text = (
+        "TpPa-1-COF was prepared according to reported works with minor "
+        "modifications. First, 1,3,5-triformylphloroglucinol (Tp) "
+        "(31 mg, 0.15 mmol) and paraphenylenediamine (24 mg, Pa-1) "
+        "ligands were dispersed in 3 mL N,N-dimethylformamide (DMF) "
+        "by ultrasound. Then, 0.5 mL acetic acid (3 M) was added into "
+        "the tube. After the solution is ultrasonic evenly, transfer the "
+        "tube into liquid nitrogen (77 K) for rapid freezing, and vacuum "
+        "it three times. Then, the tube was sealed and transferred into "
+        "oven to heat at 120 °C for 3 days."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TpPa-1-COF"]
+    assert fields["monomers"] == [
+        {"monomer": "1,3,5-triformylphloroglucinol (Tp)", "role": "ligand_dispersion"},
+        {"monomer": "paraphenylenediamine", "role": "ligand_dispersion"},
+    ]
+    assert fields["catalysts"] == [{"catalyst": "acetic acid"}]
+    assert fields["solvents"] == [{"solvent": "DMF"}]
+    assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["3 days"]
