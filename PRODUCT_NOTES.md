@@ -165,3 +165,5 @@ COF monomer extraction now ignores standalone narrative `monomer`/`monomers` val
 COF extraction now also preserves real TpPa-1-COF experimental wording where two ligands are dispersed in DMF before acetic-acid addition, vacuum cycling, and oven heating, so ligand-list monomers and 120 °C/3 days conditions are retained without treating the 77 K freeze step as synthesis temperature.
 
 COF extraction now also preserves real sonochemical SonoTp-TAPB wording from an open PMC Methods section, including parenthetical framework names and sequential Tp/TAPB addition, while excluding drying-only 65 °C/vacuum cleanup conditions from synthesis fields.
+
+COF extraction now also preserves real Tru-COF abstract wording for Brønsted acid-catalyzed aldol cyclotrimerization, including the one-substrate `polymerization of 1,3,5-triindanonebenzene (TDB)` monomer evidence from an open PMC article.

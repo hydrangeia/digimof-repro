@@ -18,6 +18,7 @@ COF_PARAGRAPH_TERMS = [
     "hydrazone",
     "beta-ketoenamine",
     "\u03b2-ketoenamine",
+    "aldol",
     "olefin",
     "vinylene",
 ]
@@ -36,6 +37,8 @@ COF_ROUTE_TERMS = [
     "Schiff-base polycondensation",
     "Knoevenagel condensation",
     "Knoevenagel polycondensation",
+    "Brønsted acid-catalyzed aldol cyclotrimerization reaction",
+    "aldol cyclotrimerization reaction",
     "boronate ester condensation",
     "boronic acid condensation",
     "hydrazone formation",
@@ -742,6 +745,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
         (r"\bcondensing\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "condensation"),
         (r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polymerization"),
         (r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polymerization"),
+        (
+            r"\bpolymerization\s+of\s+([A-Za-z0-9][^.;]+?)"
+            r"(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)",
+            "polymerization",
+        ),
         (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+with\s+(?!a\s+molar\s+ratio\b)([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
         (r"\bpolycondensation\s+of\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?)(?=\s+(?:by|under|using|at|in|to|through|via|for|affording|yielding)\b|[.;]|$)", "polycondensation"),
     ]

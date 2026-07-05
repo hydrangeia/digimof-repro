@@ -1212,3 +1212,27 @@ def test_heuristic_cof_fields_real_sonotp_tapb_sonochemical_addition():
     assert fields["time"] == ["90 min"]
     assert "temperature" not in fields
     assert "atmospheres" not in fields
+
+
+def test_heuristic_cof_fields_real_tru_baac_polymerization():
+    text = (
+        "The synthesis of new C-C bonded two-dimensional (2D) covalent "
+        "organic frameworks (COFs) is highly desirable. Here, a simple "
+        "but effective synthetic strategy has been developed using an "
+        "irreversible Brønsted acid-catalyzed aldol cyclotrimerization "
+        "reaction by virtue of truxene as a linkage. Nonolefin C-C bonded "
+        "2D truxene-based covalent organic frameworks (Tru-COFs) were "
+        "constructed by polymerization of 1,3,5-triindanonebenzene (TDB)."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["Tru-COFs"]
+    assert fields["polymerization_routes"] == [
+        {"route": "Brønsted acid-catalyzed aldol cyclotrimerization reaction"}
+    ]
+    assert fields["linkages"] == [{"linkage": "C-C bonded"}]
+    assert fields["monomers"] == [
+        {"monomer": "1,3,5-triindanonebenzene (TDB)", "role": "polymerization"}
+    ]
