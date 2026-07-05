@@ -1180,3 +1180,35 @@ def test_heuristic_cof_fields_real_tppa1_ligand_dispersion_conditions():
     assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["3 days"]
+
+def test_heuristic_cof_fields_real_sonotp_tapb_sonochemical_addition():
+    text = (
+        "The green sonochemical method was employed to efficiently construct "
+        "S-scheme heterojunctions comprising MgIn2S4 (MIS) and covalent "
+        "organic framework (SonoTp-TAPB). MIS/sonoTp-TAPB S-scheme "
+        "heterojunctions were fabricated using a sonochemical approach. "
+        "Taking MIS/sonoTp-TAPB 0.01 (where 0.01 denotes the molar amount "
+        "of Tp and TAPB as 0.01 mmol) as an example, 100 mg of pristine "
+        "MIS and 2.1 mg (0.01 mmol) of Tp were dissolved in 6 mL of "
+        "acetic acid. Afterwards, the mixture was transferred to ultrasonic "
+        "bath and dispersed for 30 min. Subsequently, TAPB (3.5 mg, "
+        "0.01 mmol) was added and dispersed for another 90 min. The product "
+        "was collected by centrifugation, washed with methanol and "
+        "tetrahydrofuran for three times, and dried overnight at 65 °C "
+        "under vacuum. Sonochemical synthesis of sonoTp-TAPB was performed "
+        "in the absence of MIS."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["SonoTp-TAPB"]
+    assert fields["polymerization_routes"] == [{"route": "sonochemical"}]
+    assert fields["monomers"] == [
+        {"monomer": "Tp", "role": "sonochemical_addition"},
+        {"monomer": "TAPB", "role": "sonochemical_addition"},
+    ]
+    assert fields["catalysts"] == [{"catalyst": "acetic acid"}]
+    assert fields["time"] == ["90 min"]
+    assert "temperature" not in fields
+    assert "atmospheres" not in fields

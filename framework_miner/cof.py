@@ -458,6 +458,14 @@ def heuristic_cof_names(text: str) -> list[str]:
         if _looks_like_cof_name(name):
             _append_unique(names, name)
     for match in re.finditer(
+        r"\bcovalent\s+organic\s+framework\s*\(\s*([A-Za-z0-9]+(?:[-_/][A-Za-z0-9]+){1,5})\s*\)",
+        text,
+        flags=re.I,
+    ):
+        name = clean_cof_name(match.group(1))
+        if _looks_like_cof_name(name):
+            _append_unique(names, name)
+    for match in re.finditer(
         r"\b(?:[A-Za-z-]+linked\s+)?COFs?,\s*([^.;]+?)(?=,\s*(?:was|were|is|are|all|which|that|with)\b|;|\.|$)",
         text,
         flags=re.I,
@@ -492,6 +500,15 @@ def _temperature_values(text: str) -> list[str]:
     for match in re.finditer(pattern, text):
         if _is_auxiliary_component_temperature(text, match.start()):
             continue
+        if _sentence_contains_workup_terms(text, match.start()):
+            sentence_start, sentence_end = _sentence_bounds(text, match.start())
+            sentence = text[sentence_start:sentence_end]
+            if not re.search(
+                r"\b(?:reaction|mixture)\s+was\s+heated\b|\btransferred\s+into\s+oven\s+to\s+heat\b",
+                sentence,
+                flags=re.I,
+            ):
+                continue
         normalized = " ".join(match.group(0).split())
         normalized = re.sub(r"\s*{}\Z".format(CLEANSIUS_VARIANT_PATTERN), " °C", normalized)
         _append_unique(values, normalized)
@@ -541,6 +558,11 @@ def _atmosphere_values(text: str) -> list[str]:
     ]
     for pattern in patterns:
         for match in re.finditer(pattern, text, flags=re.I):
+            if _sentence_contains_workup_terms(text, match.start()):
+                sentence_start, sentence_end = _sentence_bounds(text, match.start())
+                sentence = text[sentence_start:sentence_end]
+                if not re.search(r"\b(?:sealed|evacuated)\b[^.;]{0,120}\bheated\b", sentence, flags=re.I):
+                    continue
             _append_unique(values, _normalize_atmosphere_value(match.group("atmosphere")))
     carrier_gas_patterns = [
         r"\b(?P<series>{label}(?:\s*(?:,|/|and)\s*{label})+)\s+flow\b[^.;]{{0,120}}\bcarrier gas\b".format(
@@ -668,6 +690,11 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             r"\bSolution\s+A\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b"
             r"[\s\S]{0,180}?\bSolution\s+B\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b",
             "precursor_solution",
+        ),
+        (
+            r"\b[\d.]+\s+mg\s*\([^)]*\)\s+of\s+([A-Za-z0-9-]+)\s+were\s+dissolved\b"
+            r"[\s\S]{0,180}?\bSubsequently,\s+([A-Za-z0-9-]+)\s*\([^)]*\)\s+was\s+added\b",
+            "sonochemical_addition",
         ),
         (
             r"\bFirst,\s+([A-Za-z0-9][^.;]+?\([^)]*[A-Za-z][^)]*\)\s*\([^)]*mg[^)]*\))\s+"
