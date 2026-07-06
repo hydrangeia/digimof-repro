@@ -35,6 +35,8 @@ COF_ROUTE_TERMS = [
     "Schiff base polycondensation",
     "Schiff-base condensation",
     "Schiff-base polycondensation",
+    "Schiff-base polymerization",
+    "Michael addition-elimination reaction",
     "Knoevenagel condensation",
     "Knoevenagel polycondensation",
     "Brønsted acid-catalyzed aldol cyclotrimerization reaction",
@@ -398,7 +400,7 @@ def _looks_like_cof_name(name: str) -> bool:
     cleaned = clean_cof_name(name)
     if not cleaned:
         return False
-    if cleaned.lower() in {"cof", "cofs"}:
+    if cleaned.lower() in {"cof", "cofs", "q1dcof", "q1dcofs"}:
         return False
 
     residual = re.sub(r"\bCOFs?\b", " ", cleaned, flags=re.I)
@@ -424,6 +426,16 @@ def clean_monomer_name(name: str) -> str:
 
 def heuristic_cof_names(text: str) -> list[str]:
     names: list[str] = []
+
+    for match in re.finditer(
+        r"\bQ1DCOFs?\s+of\s+([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*COF(?:\s*,\s*(?:and\s+)?[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*COF)+)",
+        text,
+        flags=re.I,
+    ):
+        for raw_name in re.split(r"\s*,\s*(?:and\s+)?", match.group(1)):
+            name = clean_cof_name(raw_name)
+            if _looks_like_cof_name(name):
+                _append_unique(names, name)
 
     for match in re.finditer(
         r"\b([A-Z][A-Za-z0-9]+(?:-[A-Za-z0-9]+)+(?:\s*,\s*(?:and\s+)?[A-Z][A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)+)"
@@ -669,9 +681,24 @@ def _append_monomer(monomers: list[dict], name: str, role: str) -> None:
         monomers.append(item)
 
 
+def _split_respective_monomer_list(phrase: str) -> list[str]:
+    phrase = re.sub(r",?\s*respectively\b.*$", "", phrase, flags=re.I).strip()
+    return [
+        clean_monomer_name(part)
+        for part in re.split(r"(?<=\))\s*,\s*(?:and\s+)?", phrase)
+        if clean_monomer_name(part)
+    ]
+
+
 def heuristic_cof_monomers(text: str) -> list[dict]:
     monomers: list[dict] = []
     patterns = [
+        (
+            r"\bprepared\s+via\s+"
+            r"(?:Michael\s+addition-elimination\s+reaction(?:\s+or\s+Schiff-base\s+polymerization)?|Schiff-base\s+polymerization)"
+            r"\s+between\s+([A-Za-z0-9][^.;]+?)\s+and\s+([A-Za-z0-9][^.;]+?\brespectively\b)",
+            "respective_between",
+        ),
         (r"\bmonomers\s*(?:were|are|:)\s*([A-Za-z0-9][^.;]+?)(?=\s+(?:underwent|afforded)\b|[.;]|$)", "explicit"),
         (
             r"\bthree-component\s+polycondensation\s+of\s+([A-Za-z0-9][^.;]+?)"
@@ -768,6 +795,14 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
                 for group in match.groups():
                     for name in _split_monomer_phrase(group, trim_conditions=False):
                         _append_monomer(monomers, name, "reagent_list")
+                continue
+            if role == "respective_between":
+                for name in _split_monomer_phrase(match.group(1)):
+                    _append_monomer(monomers, name, "between")
+                for name in _split_respective_monomer_list(match.group(2)):
+                    _append_monomer(monomers, name, "between")
+                continue
+            if role == "between" and any("respectively" in group.lower() for group in match.groups()):
                 continue
             if len(match.groups()) == 2:
                 for group in match.groups():

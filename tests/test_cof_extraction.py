@@ -1236,3 +1236,49 @@ def test_heuristic_cof_fields_real_tru_baac_polymerization():
     assert fields["monomers"] == [
         {"monomer": "1,3,5-triindanonebenzene (TDB)", "role": "polymerization"}
     ]
+
+
+def test_heuristic_cof_fields_real_q1d_respective_polymerization():
+    text = (
+        "Q1DCOFs of En-Q1DCOF, Mix-Q1DCOF, and Im-Q1DCOF were "
+        "successfully prepared via Michael addition-elimination reaction "
+        "or Schiff-base polymerization between "
+        "Tetrakis(4-aminobiphenyl)ethylene (TAE) and "
+        "1,1′-(1,3-Phenylene)bis[3-(dimethylamino)−2-propen-1-one "
+        "(PDP), 1-(3-Benzaldehyde)−3-(dimethylamino)−2-propen-1-one "
+        "(BDP), and 1,3-Benzenedicarboxaldehyde (BD), respectively. "
+        "A typical synthesis involved charging a Pyrex tube with PDP "
+        "(19.8 mg, 0.07 mmol), TAE (24.5 mg, 0.035 mmol), "
+        "1,2-dichlorobenzene (0.5 mL), and 1-butanol (0.5 mL). "
+        "After 5 min sonication, 0.1 mL of 6 M aqueous acetic acid "
+        "was added under shaking, followed by another 5 min sonication. "
+        "Subsequently, the mixture undergoes flash freezing with liquid "
+        "nitrogen and is then sealed under vacuum. The reaction mixture "
+        "was heated to 120 °C and held undisturbed for 72 h."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["En-Q1DCOF", "Mix-Q1DCOF", "Im-Q1DCOF"]
+    assert fields["polymerization_routes"] == [
+        {"route": "Michael addition-elimination reaction"},
+        {"route": "Schiff-base polymerization"},
+    ]
+    assert fields["monomers"] == [
+        {"monomer": "Tetrakis(4-aminobiphenyl)ethylene (TAE)", "role": "between"},
+        {
+            "monomer": "1,1′-(1,3-Phenylene)bis[3-(dimethylamino)−2-propen-1-one (PDP)",
+            "role": "between",
+        },
+        {
+            "monomer": "1-(3-Benzaldehyde)−3-(dimethylamino)−2-propen-1-one (BDP)",
+            "role": "between",
+        },
+        {"monomer": "1,3-Benzenedicarboxaldehyde (BD)", "role": "between"},
+    ]
+    assert fields["catalysts"] == [{"catalyst": "acetic acid"}]
+    assert fields["solvents"] == [{"solvent": "1,2-dichlorobenzene"}, {"solvent": "butanol"}]
+    assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["72 h"]
