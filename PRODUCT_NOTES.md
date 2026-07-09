@@ -169,3 +169,5 @@ COF extraction now also preserves real sonochemical SonoTp-TAPB wording from an 
 COF extraction now also preserves real Tru-COF abstract wording for Brønsted acid-catalyzed aldol cyclotrimerization, including the one-substrate `polymerization of 1,3,5-triindanonebenzene (TDB)` monomer evidence from an open PMC article.
 
 COF extraction now also preserves real Q1DCOF Methods wording from an open PMC enaminone-linked COF article, including specific En-Q1DCOF/Mix-Q1DCOF/Im-Q1DCOF names, Michael addition-elimination and Schiff-base polymerization routes, respective monomer lists, sealed-vacuum conditions, and the 120 °C/72 h reaction hold.
+
+MOF name extraction now recognizes scoped `afforded TiIII-MIL-101`-style product wording in experimental electrosynthesis paragraphs, while retaining only fields supported by the normalized MOF schema.

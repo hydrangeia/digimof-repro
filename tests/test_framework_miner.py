@@ -139,6 +139,21 @@ def test_mof_candidate_text_filters_generic_page_chrome():
     assert is_mof_candidate_text("A calcium-based metal-organic framework was synthesized.")
 
 
+def test_heuristic_mof_handles_afforded_titanium_mil_name():
+    text = (
+        "A four-hour controlled potential electrolysis of TiCl4 in the presence of H2bdc "
+        "and 0.1 M TBAPF6 as supporting electrolyte in a 10:1 DMF/EtOH mixture using a "
+        "nickel foam working electrode, followed by heating at 120 °C for 18 hours "
+        "afforded TiIII-MIL-101 as a crystalline dark purple powder in high yield."
+    )
+
+    fields = heuristic_mof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TiIII-MIL-101"]
+    assert fields["synthesis_routes"] == [{"synthesis": "electrochemical"}]
+
+
 def test_parse_html_text_counts_only_candidate_paragraphs():
     html = b"""
     <html><body>

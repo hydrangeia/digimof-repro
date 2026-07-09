@@ -51,6 +51,7 @@ MOF_PARAGRAPH_TERMS = [
     "hydrothermal",
     "ionothermal",
     "mechanochemical",
+    "controlled potential electrolysis",
 ]
 MOF_CONTEXT_BOUNDARY = (
     r"(?=,\s*(?:which|that|was|were|has|have|is|are|can|with|featuring)\b"
@@ -209,6 +210,12 @@ def heuristic_mof_fields(text: str) -> dict | None:
             r"(?=\s*[,.;]|$)",
             0,
         ),
+        (
+            r"(?i:\bafforded\s+(?:an?\s+)?)"
+            r"((?:[A-Z][a-z]?\s*)?(?:\([IVX]+\)|[IVX]+)?-?(?:MIL|MOF|ZIF|UiO|HKUST)-?\d+(?:-\w+)?)"
+            r"(?=\s+(?:as|in|with)\b|[,.;]|$)",
+            0,
+        ),
     ]
     for pattern, flags in patterns:
         for match in re.finditer(pattern, text, flags=flags):
@@ -222,6 +229,10 @@ def heuristic_mof_fields(text: str) -> dict | None:
     fields: dict = {"names": names}
     lower = text.lower()
     synthesis_routes = [{"synthesis": term} for term in SYNTHESIS_TERMS if term in lower]
+    if "controlled potential electrolysis" in lower and not any(
+        route["synthesis"] == "electrochemical" for route in synthesis_routes
+    ):
+        synthesis_routes.append({"synthesis": "electrochemical"})
     if synthesis_routes:
         fields["synthesis_routes"] = synthesis_routes
     return fields
