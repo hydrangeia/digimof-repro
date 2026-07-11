@@ -1282,3 +1282,31 @@ def test_heuristic_cof_fields_real_q1d_respective_polymerization():
     assert fields["atmospheres"] == [{"atmosphere": "vacuum"}]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["72 h"]
+
+
+def test_heuristic_cof_fields_real_tppa_sponge_template_solvothermal():
+    text = (
+        "The most commonly used imine‐linked COF, TpPa (Figure S1), was "
+        "selected as the research model. Polyacrylonitrile (PAN) was used "
+        "as the template polymer, and a hierarchical porous and hollow TpPa "
+        "sponge was prepared using the TFA solvothermal process. After this, "
+        "the sponge was soaked in a dichloromethane solution containing "
+        "1,3,5‐triformylphloroglucinol (Tp) and subjected to solvothermal "
+        "reaction at 120 °C for 1day, with acetic acid serving as a catalyst. "
+        "During this process, Pa reacted with Tp, resulting in the in‐situ "
+        "growth of numerous TpPa nanoparticles on the PAN skeleton."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["TpPa"]
+    assert fields["polymerization_routes"] == [{"route": "solvothermal"}]
+    assert fields["monomers"] == [
+        {"monomer": "1,3,5‐triformylphloroglucinol (Tp)", "role": "template_solvothermal"},
+        {"monomer": "Pa", "role": "template_solvothermal"},
+    ]
+    assert fields["catalysts"] == [{"catalyst": "acetic acid"}]
+    assert fields["solvents"] == [{"solvent": "dichloromethane"}]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["1day"]

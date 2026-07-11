@@ -286,7 +286,12 @@ def _append_unique(values: list[str], value: str) -> None:
 def _catalyst_values(text: str) -> list[str]:
     values = _find_terms(text, COF_CATALYST_TERMS)
     for pattern, normalized in COF_CATALYST_ALIASES:
-        for _match in re.finditer(pattern, text, flags=re.I):
+        for match in re.finditer(pattern, text, flags=re.I):
+            if normalized == "trifluoroacetic acid":
+                _sentence_start, sentence_end = _sentence_bounds(text, match.start())
+                following = text[match.end() : sentence_end]
+                if re.match(r"\s+solvothermal\s+process\b", following, flags=re.I):
+                    continue
             _append_unique(values, normalized)
     return values
 
@@ -390,6 +395,7 @@ def is_cof_candidate_text(text: str) -> bool:
 
 def clean_cof_name(name: str) -> str:
     name = " ".join(name.split())
+    name = re.sub(r"\s*\((?:Figure|Fig\.?|Scheme|Table)\s+[^)]*\)", "", name, flags=re.I)
     name = name.strip(" \t\r\n,.;:")
     if (name.startswith("(") and name.endswith(")")) or (name.startswith("[") and name.endswith("]")):
         name = name[1:-1].strip()
@@ -732,6 +738,13 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             "ligand_dispersion",
         ),
         (
+            r"\bsolution\s+containing\s+([A-Za-z0-9][^.;]+?\([^)]*[A-Za-z][^)]*\))\s+"
+            r"and\s+subjected\s+to\s+solvothermal\s+reaction\b"
+            r"[\s\S]{0,220}?\bDuring\s+this\s+process,\s+([A-Za-z0-9][A-Za-z0-9_-]*)\s+reacted\s+with\s+"
+            r"([A-Za-z0-9][A-Za-z0-9_-]*)\b",
+            "template_solvothermal",
+        ),
+        (
             r"\bcharged\s+with\s+([A-Za-z0-9][^.;]+?\[Co\(TAP\)\]\s*\([^)]*\)),\s*(BDA),\s*"
             r"([A-Za-z0-9][^.;]+?)\s*\([^)]*mmol[^)]*\),\s*1,2-dichlorobenzene\b",
             "charged_reagent_list",
@@ -803,6 +816,14 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
                     _append_monomer(monomers, name, "between")
                 continue
             if role == "between" and any("respectively" in group.lower() for group in match.groups()):
+                continue
+            if role == "template_solvothermal":
+                primary = clean_monomer_name(match.group(1))
+                if primary and primary.lower() not in MONOMER_STOP_WORDS_LOWER:
+                    _append_monomer(monomers, primary, role)
+                secondary = clean_monomer_name(match.group(2))
+                if secondary and secondary.lower() not in MONOMER_STOP_WORDS_LOWER:
+                    _append_monomer(monomers, secondary, role)
                 continue
             if len(match.groups()) == 2:
                 for group in match.groups():

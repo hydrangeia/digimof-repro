@@ -171,3 +171,5 @@ COF extraction now also preserves real Tru-COF abstract wording for Brønsted ac
 COF extraction now also preserves real Q1DCOF Methods wording from an open PMC enaminone-linked COF article, including specific En-Q1DCOF/Mix-Q1DCOF/Im-Q1DCOF names, Michael addition-elimination and Schiff-base polymerization routes, respective monomer lists, sealed-vacuum conditions, and the 120 °C/72 h reaction hold.
 
 MOF name extraction now recognizes scoped `afforded TiIII-MIL-101`-style product wording in experimental electrosynthesis paragraphs, while retaining only fields supported by the normalized MOF schema.
+
+COF extraction now also preserves real TpPa sponge template-assisted solvothermal wording from an open PMC/Europe PMC article, including `COF, TpPa (Figure S1)` name cleanup, Tp/Pa monomer evidence from the soaked-template paragraph, dichloromethane/acetic-acid conditions, and a guard against misreading the `TFA solvothermal process` acronym as trifluoroacetic acid.
