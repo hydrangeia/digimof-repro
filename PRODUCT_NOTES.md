@@ -173,3 +173,5 @@ COF extraction now also preserves real Q1DCOF Methods wording from an open PMC e
 MOF name extraction now recognizes scoped `afforded TiIII-MIL-101`-style product wording in experimental electrosynthesis paragraphs, while retaining only fields supported by the normalized MOF schema.
 
 COF extraction now also preserves real TpPa sponge template-assisted solvothermal wording from an open PMC/Europe PMC article, including `COF, TpPa (Figure S1)` name cleanup, Tp/Pa monomer evidence from the soaked-template paragraph, dichloromethane/acetic-acid conditions, and a guard against misreading the `TFA solvothermal process` acronym as trifluoroacetic acid.
+
+COF extraction now also preserves real ZnP-Pz-DHTP-COF Methods wording from an open PMC article, including monomers from degassed `o-DCB/dioxane mixture of A, B and C in the presence of acetic acid` paragraphs while retaining the sealed-tube 120 °C/3 days synthesis conditions.

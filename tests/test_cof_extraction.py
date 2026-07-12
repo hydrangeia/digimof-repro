@@ -1310,3 +1310,34 @@ def test_heuristic_cof_fields_real_tppa_sponge_template_solvothermal():
     assert fields["solvents"] == [{"solvent": "dichloromethane"}]
     assert fields["temperature"] == ["120 °C"]
     assert fields["time"] == ["1day"]
+
+
+def test_heuristic_cof_fields_real_znp_dhtp_methods_degassed_mixture():
+    text = (
+        "An o-DCB/dioxane (1/1 in vol, 1 mL) mixture of ZnP (14.6 mg, 0.02 mmol), "
+        "pyrazine-2,5-dialdehyde (2.7 mg, 0.02 mmol) and "
+        "2,5-dihydroxyterephthalaldehyde (3.3 mg, 0.02 mmol) in the presence of "
+        "acetic acid (6 M, 0.1 mL) was degassed in a Pyrex tube (10 mL) by three "
+        "freeze-pump-thaw cycles. The tube was sealed off and heated at 120 °C for "
+        "3 days. The precipitate was collected by filtration, washed with THF and "
+        "subjected to Soxhlet extraction with THF for 1 day. The powder was collected "
+        "and dried at room temperature under vacuum overnight to give ZnP-Pz-DHTP-COF "
+        "in an isolated yield of 86%."
+    )
+
+    fields = heuristic_cof_fields(text)
+
+    assert fields is not None
+    assert fields["names"] == ["ZnP-Pz-DHTP-COF"]
+    assert fields["monomers"] == [
+        {"monomer": "ZnP", "role": "degassed_mixture"},
+        {"monomer": "pyrazine-2,5-dialdehyde", "role": "degassed_mixture"},
+        {"monomer": "2,5-dihydroxyterephthalaldehyde", "role": "degassed_mixture"},
+    ]
+    assert fields["catalysts"] == [{"catalyst": "acetic acid"}]
+    assert fields["solvents"] == [
+        {"solvent": "dioxane"},
+        {"solvent": "1,2-dichlorobenzene"},
+    ]
+    assert fields["temperature"] == ["120 °C"]
+    assert fields["time"] == ["3 days"]

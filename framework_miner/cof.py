@@ -723,6 +723,13 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
             "reagent_list",
         ),
         (
+            r"\bmixture\s+of\s+([A-Za-z0-9][^;]+?\([^)]*\bmmol[^)]*\))\s*,\s*"
+            r"([A-Za-z0-9][^;]+?\([^)]*\bmmol[^)]*\))\s+and\s+"
+            r"([A-Za-z0-9][^;]+?\([^)]*\bmmol[^)]*\))\s+in\s+the\s+presence\s+of\s+"
+            r"(?:acetic\s+acid|AcOH|HOAc)\b[\s\S]{0,120}?\bwas\s+degassed\b",
+            "degassed_mixture",
+        ),
+        (
             r"\bSolution\s+A\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b"
             r"[\s\S]{0,180}?\bSolution\s+B\s+contained\s+[\d.]+\s+mg\s+of\s+([A-Za-z0-9-]+)\s+dissolved\b",
             "precursor_solution",
@@ -808,6 +815,12 @@ def heuristic_cof_monomers(text: str) -> list[dict]:
                 for group in match.groups():
                     for name in _split_monomer_phrase(group, trim_conditions=False):
                         _append_monomer(monomers, name, "reagent_list")
+                continue
+            if role == "degassed_mixture":
+                for group in match.groups():
+                    name = clean_monomer_name(group)
+                    if name and name.lower() not in MONOMER_STOP_WORDS_LOWER:
+                        _append_monomer(monomers, name, role)
                 continue
             if role == "respective_between":
                 for name in _split_monomer_phrase(match.group(1)):
