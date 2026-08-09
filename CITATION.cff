@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Framework Miner for MOF/COF Synthesis Literature"
+type: software
+authors:
+  - name: "DigiMOF Reproduction and Framework Miner contributors"
+repository-code: "https://github.com/hydrangeia/digimof-repro"
+abstract: "An auditable MOF/COF synthesis-literature extraction prototype with DigiMOF reproduction support, curated real-literature benchmarks, and local HTML review reports."
+keywords:
+  - metal-organic frameworks
+  - covalent organic frameworks
+  - text mining
+  - synthesis extraction
+  - materials informatics
+license: MIT
+date-released: "2026-08-10"
+

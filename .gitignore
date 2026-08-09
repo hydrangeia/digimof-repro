@@ -27,3 +27,4 @@ benchmark/results.*
 # Local editor/system files
 .DS_Store
 Thumbs.db
+PROJECT_INTERFACE.md
