@@ -34,7 +34,7 @@ browsers in materials-science papers.
 
 ## Current Status
 
-As of 2026-08-10:
+As of 2026-08-14:
 
 - Benchmark cases: 69
 - COF cases: 59
