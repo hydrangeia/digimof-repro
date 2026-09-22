@@ -27,6 +27,7 @@ Framework Miner provides a small open system for:
 - Building a curated benchmark from real open-access literature snippets.
 - Producing local HTML reports that non-programmer readers can inspect.
 - Keeping each extracted field tied to evidence text for human review.
+- Experimenting with a separate, evidence-linked charge-carrier mobility miner.
 
 This makes it useful as supporting infrastructure for review articles, database
 curation, reproducible supplementary systems, and reader-facing literature
@@ -83,6 +84,12 @@ framework_miner/
   legacy_digimof.py      DigiMOF-compatible MOF wrapper and shared parsing
   report.py              Local HTML review report renderer
 
+mobility_miner/
+  extract.py             Mobility values, methods, algorithms, and provenance
+  sources.py             PDF/HTML/XML/text/URL ingestion
+  cli.py                 Paragraph-level mobility extraction entry point
+  report.py              Mobility-specific HTML review report
+
 benchmark/
   gold_cases.jsonl       Curated MOF/COF synthesis benchmark snippets
 
@@ -135,6 +142,27 @@ sample_outputs\framework_miner_all_samples_report.html
 The report is the recommended first interface for readers and collaborators. It
 contains a searchable, filterable table of extracted records, normalized fields,
 review labels, and evidence snippets.
+
+## Experimental Mobility Miner
+
+The repository now includes a separate, early-stage mobility evidence pipeline.
+It extracts charge-carrier mobility values and original units, normalizes values
+to `cm^2 V^-1 s^-1`, and records carrier type, temperature/direction, experimental
+method or computational algorithm, current/prior-work relation, citation markers,
+HTML DOI/title metadata, exact character spans, and review flags. Explicit
+effective `phi * mu` products are kept distinct from direct mobility, and a
+measurement receives a material reference only when the passage contains one
+unambiguous material candidate.
+
+```powershell
+conda run --no-capture-output -n digimof-repro python -m mobility_miner.cli "path\to\papers" -o sample_outputs\mobility.jsonl --html-output sample_outputs\mobility_report.html --values-only
+```
+
+This module stays independent of the vendored ChemDataExtractor 1.x parser. See
+`MOBILITY_EXTRACTION.md` for the schema, limitations, benchmark plan, and why a
+future ChemDataExtractor 2 adapter should run in a separate environment.
+Optional DOI/page integration checks use `D:\papers\data` when that local corpus
+is available and otherwise skip without failing the portable test suite.
 
 ## Extracting From A Local PDF
 

@@ -1,0 +1,253 @@
+{
+  "schema_version": "mobility_gold_cases/0.1",
+  "policy": "Only facts explicitly supported by the cited pages are gold. Missing linkage is BLOCKED, never inferred.",
+  "cases": [
+    {
+      "case_id": "cof_pi_dy2dp_trts",
+      "family": "COF",
+      "status": "PARTIAL_PASS",
+      "source": {
+        "relative_path": "COF/10.1038_s41467-026-77017-x.pdf",
+        "doi": "10.1038/s41467-026-77017-x",
+        "doi_source": "embedded",
+        "pages": [2, 3, 4, 5],
+        "locators": ["Fig. 1", "Fig. 2", "main text pp. 4-5"]
+      },
+      "material_identity": {
+        "name": "PI-DY2DP",
+        "description": "axially pyridine-coordinated diacetylene-linked Cu-porphyrin two-dimensional polymer crystal",
+        "dimensionality": "2D polymer with interlayer coordination",
+        "stacking": "AB",
+        "missing": ["complete_formula", "space_group", "named_topology"]
+      },
+      "synthesis_processing": {
+        "method": "O-SMAIS interfacial synthesis",
+        "facts": ["DMAc-water interface", "perfluorinated surfactant monolayer", "24 h reaction", "horizontal lifting transfer"],
+        "missing": ["reaction_temperature", "pressure", "atmosphere"]
+      },
+      "sample_device": {
+        "sample": "rod-like PI-DY2DP crystals",
+        "dimensions": "0.3-0.6 um wide and 6-14 um long",
+        "measurement_geometry": "transmission TRTS; no electrode device",
+        "transfer_substrates": ["SiO2/Si", "TEM grid", "fused quartz"]
+      },
+      "measurements": [
+        {
+          "measurement_id": "cof_phi_mu_200",
+          "page": 4,
+          "material_ref": "PI-DY2DP",
+          "value": 200.0,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility_yield_product",
+          "quantity_symbol": "phi*mu",
+          "mobility_relation": "lower_bound_of_true_mobility",
+          "carrier": "photogenerated_free_carriers_unsplit",
+          "method": "time-resolved terahertz spectroscopy",
+          "analysis": "photoconductivity relation Delta_sigma=N_abs*phi*e*mu",
+          "conditions": ["approximately 100 fs, 3.1 eV pump", "approximately 1 ps THz probe"],
+          "source_relation": "current_work"
+        },
+        {
+          "measurement_id": "cof_dc_mu_480",
+          "page": 5,
+          "material_ref": "PI-DY2DP",
+          "value": 480.0,
+          "uncertainty": 50.0,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility",
+          "carrier": "electron_hole_effective_unsplit",
+          "temperature": "room-temperature",
+          "method": "time-resolved terahertz spectroscopy",
+          "analysis": "Drude model using scattering time and DFT effective mass",
+          "source_relation": "current_work"
+        }
+      ],
+      "must_not_link": [
+        "Do not merge the 200 phi*mu product with the 480 +/- 50 direct mobility estimate.",
+        "Do not attach cited Cu3BHT benchmark properties to PI-DY2DP."
+      ],
+      "known_parser_gaps": ["material name unresolved in value sentence", "cross-page sample and synthesis linkage", "abstract-versus-body deduplication"]
+    },
+    {
+      "case_id": "mof_uio66_hf5zr1_bdc",
+      "family": "MOF",
+      "status": "BLOCKED",
+      "source": {
+        "relative_path": "MOF/10.1007_s11664-018-6220-y.pdf",
+        "doi": "10.1007/s11664-018-6220-y",
+        "doi_source": "filename_inference",
+        "pages": [7, 8, 9, 12, 14, 15, 18],
+        "locators": ["Table 2", "Fig. 3 caption"]
+      },
+      "material_identity": {
+        "name": "UiO-66(Hf5Zr1)-BDC",
+        "framework_family": "UiO-66",
+        "composition": "mixed Hf/Zr inorganic knot with BDC linker",
+        "functionalization": "none",
+        "missing": ["complete_formula", "space_group", "named_topology"]
+      },
+      "synthesis_processing": {
+        "status": "not_applicable_computational_study",
+        "facts": ["DFT structure relaxation", "28 retained design points from composition search"]
+      },
+      "sample_device": {
+        "status": "not_applicable_computational_model",
+        "model": "approximately 114-atom primitive UiO-66 cell"
+      },
+      "measurements": [
+        {
+          "measurement_id": "mof_electron_mu_1p4e-3",
+          "page": 18,
+          "material_ref": "UiO-66(Hf5Zr1)-BDC",
+          "value": 0.0014,
+          "approximate": true,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility",
+          "carrier": "electron",
+          "temperature": "300 K",
+          "determination": "computational",
+          "algorithm": "Bardeen-Shockley deformation-potential model with Boltzmann relaxation-time approximation",
+          "assumptions": ["non-polar crystal", "acoustic-phonon scattering", "effective mass 8.9 m_e"],
+          "source_relation": "current_work"
+        }
+      ],
+      "must_not_link": [
+        "Do not propagate the Table 2 mobility header unit to other numerical columns.",
+        "Do not turn prior method citations into prior mobility provenance."
+      ],
+      "known_parser_gaps": ["figure-caption value lacks local algorithm and temperature", "Table 2 row-column alignment", "material name unresolved in figure caption"]
+    },
+    {
+      "case_id": "osm_compound2_sc_fet",
+      "family": "OSM",
+      "status": "BLOCKED",
+      "source": {
+        "relative_path": "OSM/10.1038_ncomms1451.pdf",
+        "doi": "10.1038/ncomms1451",
+        "doi_source": "embedded",
+        "pages": [4, 5, 6],
+        "locators": ["Fig. 3 caption", "Fig. 4 caption", "single-crystal device text"]
+      },
+      "material_identity": {
+        "name": "dianthra[2,3-b:2′,3′-f]thieno[3,2-b]thiophene (compound 2)",
+        "material_class": "fused-ring organic semiconductor",
+        "structure_evidence": "experimental single-crystal structure; long crystal axis assigned to a-axis",
+        "missing": ["complete_formula", "space_group"]
+      },
+      "synthesis_processing": {
+        "facts": ["compound purified by sublimation", "single crystals grown by physical vapour transport", "semiconductor-grade argon", "approximately 80 C"]
+      },
+      "sample_device": {
+        "sample": "thin single-crystal platelet",
+        "device": "bottom-contact bottom-gate single-crystal field-effect transistor",
+        "dielectric": "cross-linked PVP-HDA",
+        "electrodes": "Au",
+        "orientation": "crystal a-axis aligned approximately with source-drain electric field"
+      },
+      "measurements": [
+        {
+          "measurement_id": "osm_sc_fet_saturation",
+          "page": 5,
+          "material_ref": "compound 2",
+          "value": 12.3,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility",
+          "carrier": "hole",
+          "method": "single-crystal field-effect transistor",
+          "regime": "saturation",
+          "drain_source_voltage": "-1.0 V",
+          "source_relation": "current_work"
+        },
+        {
+          "measurement_id": "osm_sc_fet_linear",
+          "page": 5,
+          "material_ref": "compound 2",
+          "value": 16.0,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility",
+          "carrier": "hole",
+          "method": "single-crystal field-effect transistor",
+          "regime": "linear",
+          "drain_source_voltage": "-0.1 V",
+          "source_relation": "current_work"
+        }
+      ],
+      "must_not_link": [
+        "Do not merge the single-crystal values with the 0.51 +/- 0.06 thin-film value.",
+        "Do not merge measured values with calculated 3.34/3.36 values or prior compound-1 values."
+      ],
+      "known_parser_gaps": ["saturation-versus-linear regime linkage", "sample and device linkage", "duplicate caption and prose values", "two-column page order"]
+    },
+    {
+      "case_id": "pvsk_ba_mixed_dimensional_optp",
+      "family": "PVSK",
+      "status": "BLOCKED",
+      "source": {
+        "relative_path": "PVSK/10.1002_adfm.201902656.pdf",
+        "doi": "10.1002/adfm.201902656",
+        "doi_source": "embedded",
+        "pages": [6, 7],
+        "locators": ["Fig. 3C", "Section 2.7"]
+      },
+      "material_identity": {
+        "name": "BAx(FA0.83Cs0.17)1-xPb(I0.6Br0.4)3",
+        "material_class": "2D-3D mixed-dimensional hybrid perovskite series",
+        "composition_variable": "BA content x"
+      },
+      "synthesis_processing": {
+        "facts": ["DMF precursor solution", "quartz substrate", "70 C for 60 s", "175 C anneal for 80 min"]
+      },
+      "sample_device": {
+        "sample": "perovskite thin films",
+        "measurement_geometry": "contact-free OPTP"
+      },
+      "measurements": [
+        {
+          "measurement_id": "pvsk_phi_mu_low_ba",
+          "page": 7,
+          "material_ref": "BAx(FA0.83Cs0.17)1-xPb(I0.6Br0.4)3",
+          "value_range": [13.0, 15.0],
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility_yield_product",
+          "quantity_symbol": "phi*mu",
+          "carrier": "electron_and_hole_sum",
+          "composition_condition": "x <= 0.167",
+          "method": "optical-pump terahertz-probe spectroscopy",
+          "pump_wavelength": "400 nm",
+          "source_relation": "current_work"
+        },
+        {
+          "measurement_id": "pvsk_phi_mu_x0p8",
+          "page": 7,
+          "material_ref": "BA0.8(FA0.83Cs0.17)0.2Pb(I0.6Br0.4)3",
+          "value": 3.0,
+          "uncertainty": 1.0,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility_yield_product",
+          "carrier": "electron_and_hole_sum",
+          "composition_condition": "x = 0.8",
+          "method": "optical-pump terahertz-probe spectroscopy",
+          "source_relation": "current_work"
+        },
+        {
+          "measurement_id": "pvsk_phi_mu_ba_free",
+          "page": 7,
+          "material_ref": "(FA0.83Cs0.17)Pb(I0.6Br0.4)3",
+          "value": 13.0,
+          "uncertainty": 2.0,
+          "standard_units": "cm^2 V^-1 s^-1",
+          "quantity_kind": "mobility_yield_product",
+          "carrier": "electron_and_hole_sum",
+          "composition_condition": "x = 0",
+          "method": "optical-pump terahertz-probe spectroscopy",
+          "source_relation": "current_work"
+        }
+      ],
+      "must_not_link": [
+        "The n=1e14 cm^-3 condition in the Fig. 3 caption applies to calculated diffusion length, not automatically to phi*mu.",
+        "Do not merge values across BA compositions."
+      ],
+      "known_parser_gaps": ["two-column text interleaving", "composition-to-value linkage", "phi*mu qualifier separated from some value sentences"]
+    }
+  ]
+}

@@ -13,6 +13,7 @@ dependencies:
   - nltk
   - pandas
   - pdfminer.six
+  - pdfplumber
   - pytest
   - python-crfsuite
   - pyyaml

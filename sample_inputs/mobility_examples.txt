@@ -1,0 +1,5 @@
+In this work, the room-temperature electron mobility of monolayer Example-2D was calculated using deformation potential theory to be 2.4 x 10^3 cm^2 V^-1 s^-1 along the armchair direction.
+
+Hall measurements gave an experimental hole mobility of 1.5e-4 m^2 V^-1 s^-1 at 300 K for the Example-MOF film.
+
+Previous work reported a mobility range of 0.1–0.3 cm² V⁻¹ s⁻¹ [12].
