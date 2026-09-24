@@ -16,7 +16,13 @@ try:
 except ImportError:  # The legacy Python 3.8 environment may not be updated yet.
     pdfplumber = None
 
-from .extract import extract_mobility_fields, is_mobility_candidate_text, normalized_mobility_item
+from .extract import (
+    _source_relation_details,
+    extract_mobility_fields,
+    is_mobility_candidate_text,
+    normalized_mobility_item,
+    refresh_measurement_review_status,
+)
 
 
 SUPPORTED_FILE_SUFFIXES = {".html", ".htm", ".xml", ".txt", ".pdf"}
@@ -28,6 +34,35 @@ PDF_CONTEXT_METHOD_RE = re.compile(
     r"(?i)\b(?:Hall|OFET|FET|SCLC|TOF|TRMC|TRTS|OPTP|THz|terahertz|"
     r"deformation[-\s]?potential|Boltzmann|Marcus|DFT|first[-\s]?principles?|Drude)\b"
 )
+PAGE_DEVICE_ANCHORS = [
+    (
+        re.compile(
+            r"(?i)\b(?:SC[-\s]?FETs?|single[-\s]+crystal\s+field[-\s]*effect\s+transistor)\b"
+        ),
+        "single-crystal field-effect transistor",
+    ),
+    (
+        re.compile(r"(?i)\bthin[-\s]+film\s+(?:field[-\s]*effect\s+)?transistors?\b"),
+        "thin-film field-effect transistor",
+    ),
+]
+PAGE_FABRICATION_PATTERNS = [
+    (
+        "device_geometry",
+        re.compile(r"(?i)\bbottom[-\s]+contact\s*,?\s*bottom[-\s]+gate\s+geometry\b"),
+        "bottom-contact bottom-gate",
+    ),
+    (
+        "electrode",
+        re.compile(r"(?i)\bAu\s+bottom\s+contacts?\b"),
+        "Au bottom contacts",
+    ),
+    (
+        "fabrication_method",
+        re.compile(r"(?i)\bmanually\s+laminated\b"),
+        "manual lamination",
+    ),
+]
 
 
 def doi_from_pdf_filename(path: str | Path) -> str | None:
@@ -83,6 +118,255 @@ def split_paragraphs(text: str, max_chars: int | None = None) -> Iterable[str]:
             yield paragraph
 
 
+def _normalized_pdf_text(text: str) -> str:
+    text = re.sub(r"(?<=\w)-\s*\n\s*(?=\w)", "", text)
+    return " ".join(text.split())
+
+
+def _span_distance(first: dict[str, int], second: dict[str, int]) -> int:
+    if first["end"] < second["start"]:
+        return second["start"] - first["end"]
+    if second["end"] < first["start"]:
+        return first["start"] - second["end"]
+    return 0
+
+
+def _page_device_anchors(text: str) -> list[dict[str, Any]]:
+    anchors = []
+    for pattern, value in PAGE_DEVICE_ANCHORS:
+        for match in pattern.finditer(text):
+            anchors.append(
+                {
+                    "value": value,
+                    "raw_text": match.group(0),
+                    "span": {"start": match.start(), "end": match.end()},
+                    "span_scope": "normalized_page_text",
+                }
+            )
+    anchors.sort(key=lambda item: (item["span"]["start"], item["span"]["end"]))
+    return anchors
+
+
+def _page_condition_clause(text: str, start: int, end: int) -> tuple[str, int]:
+    """Return the narrow clause carrying a page-level condition candidate."""
+    boundaries = [
+        (match.start(), match.end())
+        for match in re.finditer(
+            r"(?i)[.!?;]|,\s+(?:and|but|with|which|where)\b",
+            text,
+        )
+    ]
+    clause_start = max(
+        (boundary_end for _boundary_start, boundary_end in boundaries if boundary_end <= start),
+        default=0,
+    )
+    clause_end = min(
+        (boundary_start for boundary_start, _boundary_end in boundaries if boundary_start >= end),
+        default=len(text),
+    )
+    return text[clause_start:clause_end], clause_start
+
+
+def _page_fabrication_candidates(text: str, max_anchor_distance: int = 650) -> list[dict[str, Any]]:
+    """Extract page-level fabrication facts only when a nearby device identity is explicit."""
+    anchors = _page_device_anchors(text)
+    candidates = []
+    for field, pattern, value in PAGE_FABRICATION_PATTERNS:
+        for match in pattern.finditer(text):
+            span = {"start": match.start(), "end": match.end()}
+            ranked_anchors = sorted(anchors, key=lambda anchor: _span_distance(span, anchor["span"]))
+            if not ranked_anchors or _span_distance(span, ranked_anchors[0]["span"]) > max_anchor_distance:
+                continue
+            clause, clause_start = _page_condition_clause(text, match.start(), match.end())
+            source_relation, source_relation_evidence = _source_relation_details(
+                clause,
+                offset=clause_start,
+            )
+            candidate = {
+                "field": field,
+                "value": value,
+                "raw_text": match.group(0),
+                "span": span,
+                "span_scope": "normalized_page_text",
+                "binding_scope": "sample",
+                "review_flags": [],
+                "source_relation": source_relation,
+                "device_anchor": ranked_anchors[0],
+            }
+            if source_relation_evidence:
+                candidate["source_relation_evidence"] = source_relation_evidence
+            candidates.append(candidate)
+    candidates.sort(key=lambda item: (item["span"]["start"], item["span"]["end"], item["field"]))
+    return candidates
+
+
+def _external_condition_evidence_ref(
+    source: dict[str, Any],
+    span: dict[str, int],
+) -> dict[str, Any]:
+    evidence_ref = {
+        "source_id": source.get("id"),
+        "source_kind": source.get("kind"),
+        "span": dict(span),
+        "span_scope": "normalized_page_text",
+    }
+    for key in ("page", "doi", "doi_source", "document_title"):
+        if source.get(key) is not None:
+            evidence_ref[key] = source[key]
+    return evidence_ref
+
+
+def _link_page_fabrication_conditions(
+    normalized_page_text: str,
+    records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Link page-level fabrication facts through an explicit shared device identity."""
+    candidates = _page_fabrication_candidates(normalized_page_text)
+    if not candidates:
+        return records
+
+    for record in records:
+        source = record.get("source", {})
+        for measurement in record.get("fields", {}).get("mobilities", []):
+            device_conditions = [
+                condition
+                for condition in measurement.get("condition_records", [])
+                if condition.get("field") == "device_type"
+            ]
+            if len(device_conditions) != 1:
+                continue
+            target_device = device_conditions[0]
+            matching_candidates = [
+                candidate
+                for candidate in candidates
+                if candidate["device_anchor"]["value"] == target_device["value"]
+            ]
+            blocked_candidates = [
+                candidate
+                for candidate in matching_candidates
+                if candidate["source_relation"] in {"prior_work", "mixed_or_ambiguous"}
+            ]
+            matching_candidates = [
+                candidate
+                for candidate in matching_candidates
+                if candidate not in blocked_candidates
+            ]
+            grouped = {}
+            for candidate in matching_candidates:
+                grouped.setdefault(candidate["field"], []).append(candidate)
+
+            linked_condition_refs = []
+            for field, field_candidates in grouped.items():
+                distinct_values = {candidate["value"] for candidate in field_candidates}
+                coverage = next(
+                    (item for item in measurement["condition_coverage"] if item["field"] == field),
+                    None,
+                )
+                if len(distinct_values) != 1:
+                    if coverage is not None:
+                        coverage["status"] = "ambiguous"
+                        coverage.pop("condition_refs", None)
+                    measurement.setdefault("review_flags", []).append("{}_ambiguous".format(field))
+                    continue
+
+                candidate = field_candidates[0]
+                device_anchor = candidate["device_anchor"]
+                condition = {
+                    key: value
+                    for key, value in candidate.items()
+                    if key != "device_anchor"
+                }
+                condition["evidence_refs"] = [
+                    _external_condition_evidence_ref(source, candidate["span"])
+                ]
+                condition["relation_path"] = [
+                    {
+                        "relation": "same_device_type",
+                        "source_anchor": device_anchor,
+                        "target_anchor": {
+                            "value": target_device["value"],
+                            "raw_text": target_device["raw_text"],
+                            "span": dict(target_device["span"]),
+                            "span_scope": "record_evidence_text",
+                        },
+                    }
+                ]
+                conditions = measurement.setdefault("condition_records", [])
+                conditions.append(condition)
+                condition_ref = len(conditions) - 1
+                linked_condition_refs.append(condition_ref)
+                if coverage is not None:
+                    coverage.update({"status": "reported", "condition_refs": [condition_ref]})
+                not_aligned_flag = "{}_not_aligned".format(field)
+                if not_aligned_flag in measurement.get("review_flags", []):
+                    measurement["review_flags"].remove(not_aligned_flag)
+
+            for candidate in blocked_candidates:
+                device_anchor = candidate["device_anchor"]
+                blocked_condition = {
+                    key: value
+                    for key, value in candidate.items()
+                    if key != "device_anchor"
+                }
+                blocked_condition["binding_scope"] = "document"
+                blocked_condition["review_flags"] = ["prior_work_not_bound_to_measurement"]
+                blocked_condition["evidence_refs"] = [
+                    _external_condition_evidence_ref(source, candidate["span"])
+                ]
+                blocked_condition["relation_path"] = [
+                    {
+                        "relation": "same_device_type",
+                        "source_anchor": device_anchor,
+                        "target_anchor": {
+                            "value": target_device["value"],
+                            "raw_text": target_device["raw_text"],
+                            "span": dict(target_device["span"]),
+                            "span_scope": "record_evidence_text",
+                        },
+                        "blocked_by": "source_relation",
+                    }
+                ]
+                measurement.setdefault("condition_candidates", []).append(blocked_condition)
+                coverage = next(
+                    (
+                        item
+                        for item in measurement["condition_coverage"]
+                        if item["field"] == candidate["field"]
+                    ),
+                    None,
+                )
+                if coverage is not None and coverage["status"] != "reported":
+                    coverage["status"] = "not_aligned"
+                    coverage.pop("condition_refs", None)
+                flag = "{}_prior_work_not_aligned".format(candidate["field"])
+                if flag not in measurement.setdefault("review_flags", []):
+                    measurement["review_flags"].append(flag)
+
+            if linked_condition_refs:
+                fabrication_coverage = next(
+                    item
+                    for item in measurement["condition_coverage"]
+                    if item["field"] == "device_fabrication"
+                )
+                fabrication_coverage.update(
+                    {"status": "reported", "condition_refs": linked_condition_refs}
+                )
+            elif blocked_candidates:
+                fabrication_coverage = next(
+                    item
+                    for item in measurement["condition_coverage"]
+                    if item["field"] == "device_fabrication"
+                )
+                if fabrication_coverage["status"] != "reported":
+                    fabrication_coverage["status"] = "not_aligned"
+                    fabrication_coverage.pop("condition_refs", None)
+                flag = "device_fabrication_prior_work_not_aligned"
+                if flag not in measurement.setdefault("review_flags", []):
+                    measurement["review_flags"].append(flag)
+            refresh_measurement_review_status(measurement)
+    return records
+
+
 def split_mobility_passages(text: str) -> Iterable[str]:
     """Build compact sentence-level PDF passages around mobility mentions.
 
@@ -91,8 +375,7 @@ def split_mobility_passages(text: str) -> Iterable[str]:
     a Hall value later on the page, so PDF evidence is narrowed here before the
     field extractor runs.
     """
-    text = re.sub(r"(?<=\w)-\s*\n\s*(?=\w)", "", text)
-    text = " ".join(text.split())
+    text = _normalized_pdf_text(text)
     if not text:
         return
     sentences = [
@@ -218,6 +501,7 @@ def parse_pdf_path(
                 if max_chars:
                     page_text = page_text[: max_chars - used_chars]
                 used_chars += len(page_text)
+                page_records = []
                 for paragraph in split_mobility_passages(page_text):
                     if is_mobility_candidate_text(paragraph):
                         source = _pdf_source(
@@ -228,8 +512,12 @@ def parse_pdf_path(
                         )
                         record = record_from_text(paragraph, source)
                         if record:
-                            yield record
+                            page_records.append(record)
                     paragraph_index += 1
+                yield from _link_page_fabrication_conditions(
+                    _normalized_pdf_text(page_text),
+                    page_records,
+                )
         return
 
     page_numbers = range(pages) if pages else None

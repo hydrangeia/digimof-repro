@@ -44,6 +44,14 @@ def _badge_list(values: list[str]) -> str:
 def _highlight_evidence(record: dict[str, Any]) -> str:
     text = record.get("evidence_text", "")
     spans = []
+    for container in record.get("fields", {}).get("document_locators", []):
+        span = container.get("span", {})
+        if isinstance(span.get("start"), int) and isinstance(span.get("end"), int):
+            spans.append((span["start"], span["end"]))
+    for container in record.get("fields", {}).get("condition_candidates", []):
+        span = container.get("span", {})
+        if isinstance(span.get("start"), int) and isinstance(span.get("end"), int):
+            spans.append((span["start"], span["end"]))
     for measurement in record.get("fields", {}).get("mobilities", []):
         for evidence_field in (
             "span", "quantity_label", "mobility_relation", "measurement_regime",
@@ -55,7 +63,7 @@ def _highlight_evidence(record: dict[str, Any]) -> str:
                 spans.append((span["start"], span["end"]))
         for evidence_list_field in (
             "method_evidence", "algorithm_evidence", "analysis_model_evidence",
-            "source_relation_evidence",
+            "source_relation_evidence", "document_locators", "condition_records",
         ):
             for container in measurement.get(evidence_list_field, []):
                 span = container.get("span", {})
@@ -88,7 +96,8 @@ def _render_measurement(measurement: dict[str, Any]) -> str:
         measurement.get("temperature"),
         measurement.get("direction"),
     ]
-    flags = measurement.get("review_flags", [])
+    flags = [measurement.get("review_status")] + measurement.get("review_flags", [])
+    flags = [flag for flag in flags if flag]
     return """
       <tr>
         <td><strong>{value}</strong><br><span class="raw">raw: {raw}</span></td>

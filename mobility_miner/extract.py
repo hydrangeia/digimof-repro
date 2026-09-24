@@ -105,7 +105,10 @@ EXPERIMENTAL_METHODS = [
 ]
 
 COMPUTATIONAL_ALGORITHMS = [
-    (r"\bdeformation[-\s]?potential(?:\s+theory)?\b|\bDPT\b", "deformation-potential theory"),
+    (
+        r"\bdeformation[-\s)]*potential(?:\s+theory)?(?=\b|provided)|\bDPT\b",
+        "deformation-potential theory",
+    ),
     (r"\bBoltzmann\s+transport\s+equation\b|\bBTE\b", "Boltzmann transport equation"),
     (r"\bKubo[-\s\u2013\u2014]?Greenwood\b", "Kubo-Greenwood"),
     (r"\bMarcus(?:[-\s]+(?:theory|hopping|rate))?\b", "Marcus theory"),
@@ -155,7 +158,7 @@ DIRECTION_PATTERNS = [
 
 CURRENT_WORK_RE = re.compile(
     r"(?i)\b(?:in\s+this\s+(?:work|study)|herein|"
-    r"we\s+(?:report|measure|measured|calculate|calculated|predict|predicted|obtain|obtained|determine|determined|demonstrate|demonstrated|present)|"
+    r"we\s+(?:report|measure|measured|calculate|calculated|predict|predicted|obtain|obtained|extract|extracted|determine|determined|demonstrate|demonstrated|present)|"
     r"(?:the\s+)?measured\s+value|values?\s+(?:were\s+)?extracted\s+from|analysis\s+demonstrated)\b"
 )
 PRIOR_WORK_RE = re.compile(
@@ -169,6 +172,53 @@ CITATION_RE = re.compile(
     r"(?<=[A-Za-z)])\d{1,3}(?:\s*,\s*\d{1,3})+)",
     re.I,
 )
+DOCUMENT_LOCATOR_RE = re.compile(
+    r"(?i)\b(?:"
+    r"(?P<figure>(?:Figure|Fig\.?)\s+S?\d+(?:[A-Za-z])?)|"
+    r"(?P<table>Table\s+S?\d+(?:[A-Za-z])?)|"
+    r"(?P<section>Section\s+[A-Za-z0-9.]+)|"
+    r"(?P<supporting>(?:Supporting|Supplementary)\s+Information)"
+    r")\b"
+)
+DEVICE_TYPE_RE = re.compile(
+    r"(?i)\b(?:single[-\s]+crystal\s+field[-\s]*effect\s+transistor|"
+    r"single[-\s]+crystal\s+FET|SC[-\s]?FET)\b"
+)
+SAMPLE_FORM_RE = re.compile(
+    r"(?i)\b(?:single[-\s]+crystal|thin[-\s]+films?|films?)\b"
+)
+DRAIN_SOURCE_VOLTAGE_RE = re.compile(
+    r"(?i)\bdrain[-\s]+source\s+(?:bias|voltage)\s*"
+    r"(?:\(\s*V(?:\s*[Dd][Ss])?\s*\))?\s*(?:was|=|of)?\s*"
+    r"(?P<value>[+\-\u2212\u2013\u2014]?\s*\d+(?:\.\d+)?)\s*V\b"
+)
+CONDITION_COVERAGE_FIELDS = (
+    "material_identity",
+    "synthesis_processing",
+    "sample_form",
+    "device_type",
+    "device_fabrication",
+    "fabrication_method",
+    "device_geometry",
+    "electrode",
+    "drain_source_voltage",
+    "substrate",
+    "thickness",
+)
+BLOCKING_REVIEW_FLAGS = {
+    "determination_unresolved",
+    "citation_metadata_unresolved",
+    "multiple_methods_near_value",
+    "effective_mobility_definition_unresolved",
+    "source_relation_mixed_or_ambiguous",
+    "multiple_temperatures_unaligned",
+    "multiple_directions_unaligned",
+    "multiple_carriers_unaligned",
+    "document_locator_unaligned",
+    "material_unresolved",
+    "multiple_materials_unaligned",
+    "material_identity_ambiguous",
+}
 
 COMPUTATIONAL_CUE_RE = re.compile(
     r"(?i)\b(?:calculat(?:e|ed|ion)|comput(?:e|ed|ational)|predict(?:ed|ion)?|simulat(?:e|ed|ion)|theoretical(?:ly)?|estimated?\s+(?:from|using)|first[-\s]principles?|DFT)\b"
@@ -418,7 +468,6 @@ def _source_relation_details(text: str, offset: int = 0) -> tuple[str, list[dict
     """Return claim provenance and the exact cues supporting that decision."""
     current_matches = list(CURRENT_WORK_RE.finditer(text))
     prior_matches = list(PRIOR_WORK_RE.finditer(text))
-    citation_matches = list(CITATION_RE.finditer(text))
     if current_matches and prior_matches:
         relation = "mixed_or_ambiguous"
         selected = [("current_work", match) for match in current_matches]
@@ -429,9 +478,6 @@ def _source_relation_details(text: str, offset: int = 0) -> tuple[str, list[dict
     elif prior_matches:
         relation = "prior_work"
         selected = [("prior_work", match) for match in prior_matches]
-    elif citation_matches:
-        relation = "prior_work"
-        selected = [("citation", match) for match in citation_matches]
     else:
         return "unspecified", []
 
@@ -450,6 +496,129 @@ def _source_relation(text: str) -> str:
     return _source_relation_details(text)[0]
 
 
+def _document_locator_matches(text: str, offset: int = 0) -> list[dict[str, Any]]:
+    """Return explicit figure/table/section/SI locators with exact spans."""
+    locators = []
+    for match in DOCUMENT_LOCATOR_RE.finditer(text):
+        locator_type = next(name for name, value in match.groupdict().items() if value)
+        locators.append(
+            {
+                "locator_type": locator_type,
+                "raw_text": match.group(0),
+                "span": {"start": offset + match.start(), "end": offset + match.end()},
+            }
+        )
+    return locators
+
+
+def _condition_scope(text: str, start: int, end: int) -> tuple[str, int]:
+    """Narrow conditions to the value's clause and figure-panel segment."""
+    clause, clause_start = _claim_clause(text, start, end)
+    local_start = start - clause_start
+    local_end = end - clause_start
+    boundaries = [(match.start(), match.end()) for match in re.finditer(r"\([a-h]\)", clause, flags=re.I)]
+    segment_start = max(
+        (boundary_end for _boundary_start, boundary_end in boundaries if boundary_end <= local_start),
+        default=0,
+    )
+    segment_end = min(
+        (boundary_start for boundary_start, _boundary_end in boundaries if boundary_start >= local_end),
+        default=len(clause),
+    )
+    return clause[segment_start:segment_end], clause_start + segment_start
+
+
+def _condition_matches(text: str, offset: int = 0) -> list[dict[str, Any]]:
+    """Extract explicit sample/device/operating-condition candidates."""
+    conditions = []
+    for match in DEVICE_TYPE_RE.finditer(text):
+        conditions.append(
+            {
+                "field": "device_type",
+                "value": "single-crystal field-effect transistor",
+                "raw_text": match.group(0),
+                "span": {"start": offset + match.start(), "end": offset + match.end()},
+            }
+        )
+    for match in SAMPLE_FORM_RE.finditer(text):
+        raw_text = match.group(0)
+        if re.search(r"(?i)single", raw_text):
+            value = "single crystal"
+        elif re.search(r"(?i)thin", raw_text):
+            value = "thin film"
+        else:
+            value = "film"
+        conditions.append(
+            {
+                "field": "sample_form",
+                "value": value,
+                "raw_text": raw_text,
+                "span": {"start": offset + match.start(), "end": offset + match.end()},
+            }
+        )
+    for match in DRAIN_SOURCE_VOLTAGE_RE.finditer(text):
+        raw_value = match.group("value")
+        normalized_value = float(
+            raw_value.replace(" ", "")
+            .replace("\u2212", "-")
+            .replace("\u2013", "-")
+            .replace("\u2014", "-")
+        )
+        conditions.append(
+            {
+                "field": "drain_source_voltage",
+                "value": "{} V".format(_plain_text(raw_value)),
+                "normalized_value": normalized_value,
+                "normalized_unit": "V",
+                "raw_text": match.group(0),
+                "span": {"start": offset + match.start(), "end": offset + match.end()},
+            }
+        )
+    conditions.sort(key=lambda item: (item["span"]["start"], item["span"]["end"], item["field"]))
+    return conditions
+
+
+def _measurement_conditions(
+    text: str,
+    start: int,
+    end: int,
+    block_conditions: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    """Bind unique panel/clause-local conditions and expose missingness."""
+    scope, scope_start = _condition_scope(text, start, end)
+    local_conditions = _condition_matches(scope, scope_start)
+    records = []
+    coverage = []
+    review_flags = []
+    for field in CONDITION_COVERAGE_FIELDS:
+        local = [item for item in local_conditions if item["field"] == field]
+        block = [item for item in block_conditions if item["field"] == field]
+        distinct_values = _unique(item["value"] for item in local)
+        if len(distinct_values) == 1:
+            selected = min(
+                local,
+                key=lambda item: _span_distance(item["span"], start, end),
+            )
+            record = {
+                **selected,
+                "binding_scope": "measurement",
+                "review_flags": [],
+            }
+            records.append(record)
+            coverage.append(
+                {"field": field, "status": "reported", "condition_refs": [len(records) - 1]}
+            )
+        elif len(distinct_values) > 1:
+            coverage.append({"field": field, "status": "ambiguous"})
+            review_flags.append("{}_ambiguous".format(field))
+        elif block:
+            coverage.append({"field": field, "status": "not_aligned"})
+            review_flags.append("{}_not_aligned".format(field))
+        else:
+            coverage.append({"field": field, "status": "not_reported"})
+    return records, coverage, review_flags
+
+
 def _claim_clause(text: str, start: int, end: int) -> tuple[str, int]:
     """Narrow provenance to the contrast/semicolon clause containing a value."""
     sentence_start, sentence_end = _sentence_bounds(text, start)
@@ -458,7 +627,12 @@ def _claim_clause(text: str, start: int, end: int) -> tuple[str, int]:
     local_end = end - sentence_start
     boundaries = [
         (match.start(), match.end())
-        for match in re.finditer(r"(?i);|\b(?:whereas|while|but)\b", sentence)
+        for match in re.finditer(
+            r"(?i);|\b(?:whereas|while|but)\b|"
+            r"\b(?:is|are|was|were)\s+(?:in\s+(?:excellent\s+)?agreement\s+with|consistent\s+with)|"
+            r"\b(?:agrees?\s+with|compared\s+(?:with|to))\b",
+            sentence,
+        )
     ]
     clause_start = max(
         (boundary_end for _boundary_start, boundary_end in boundaries if boundary_end <= local_start),
@@ -633,6 +807,8 @@ def _clean_material(raw: str) -> str | None:
         return None
     if re.search(r"(?i)\b(?:axis|plane|direction|content|devices?|applications?|values?|films?|logic)\b", material):
         return None
+    if re.search(r"(?i)\b(?:Supporting|Supplementary)\s+Information\b", material):
+        return None
     if " " in material and material.lower() == material and not re.search(r"\d", material):
         return None
     return material
@@ -646,6 +822,9 @@ def extract_materials(text: str) -> list[dict[str, Any]]:
         r"(?i)\b(?:electron|hole|carrier|charge[-\s]?carrier|ionic|proton)\s+mobilit(?:y|ies)\s+(?:of|in|for)\s+(?P<material>[A-Za-z0-9][A-Za-z0-9\-+()\[\]/.\u00b7\u2013\u2014\s]{1,80}?)(?=\s+(?:was|were|is|are|reached|reaches|amounted|has|have|can|along|at)\b|[,;:]|\.(?:\s|$))",
         r"(?i)\bfor\s+(?P<material>[A-Za-z0-9][A-Za-z0-9\-+()\[\]/.\u00b7\u2013\u2014\s]{1,60}?),\s+(?:the\s+)?(?:electron|hole|carrier|charge[-\s]?carrier|ionic|proton)?\s*mobilit(?:y|ies)\b",
         r"(?P<material>[A-Z][A-Za-z0-9\-+()\[\]/.\u00b7\u2013\u2014]{1,50})\s+(?i:(?:exhibit(?:s|ed)?|show(?:s|ed)?|possess(?:es|ed)?|display(?:s|ed)?)\s+(?:an?\s+)?(?:electron|hole|carrier|charge[-\s]?carrier|field[-\s]?effect)?\s*mobilit(?:y|ies))\b",
+        r"(?i:mobility\s*is\s*associated\s*with)\s*"
+        r"(?P<material>[A-Z][A-Za-z0-9\-+()\[\]/.\u00b7\u2013\u2014]{1,60}?)"
+        r"(?=(?i:\s*with\s*an?\s*approximate\s*value))",
     ]
     materials = []
     for pattern in patterns:
@@ -662,6 +841,38 @@ def extract_materials(text: str) -> list[dict[str, Any]]:
                         },
                     }
                 )
+
+    for entry in _quantity_entries(text):
+        clause, clause_start = _claim_clause(text, entry["start"], entry["end"])
+        if not MOBILITY_SIGNAL_RE.search(clause):
+            continue
+        tail_start = entry["end"] - clause_start
+        if tail_start < 0 or tail_start > len(clause):
+            continue
+        match = re.match(
+            r"^\s+(?i:for)\s+"
+            r"(?P<material>[A-Z][A-Za-z0-9\-+()\[\]/.\u00b7\u2013\u2014]{1,50})"
+            r"(?=[,;.]|\s+(?i:which|that)\b)",
+            clause[tail_start:],
+        )
+        if not match:
+            continue
+        material = _clean_material(match.group("material"))
+        if not material or material in [item["material"] for item in materials]:
+            continue
+        material_start = clause_start + tail_start + match.start("material")
+        materials.append(
+            {
+                "material": material,
+                "raw_text": match.group("material"),
+                "span": {
+                    "start": material_start,
+                    "end": clause_start + tail_start + match.end("material"),
+                },
+                "binding_basis": "post_value_for_phrase",
+            }
+        )
+    materials.sort(key=lambda item: (item["span"]["start"], item["span"]["end"]))
     return materials
 
 
@@ -738,6 +949,7 @@ def extract_mobility_measurements(
     analysis_models = analysis_models or []
     measurements = []
     quantity_entries = _quantity_entries(text)
+    block_conditions = _condition_matches(text)
 
     for entry in quantity_entries:
         sentence_start, sentence_end = _sentence_bounds(text, entry["start"])
@@ -788,6 +1000,13 @@ def extract_mobility_measurements(
             claim_clause,
             offset=claim_clause_start,
         )
+        document_locators = _document_locator_matches(claim_clause, claim_clause_start)
+        condition_records, condition_coverage, condition_review_flags = _measurement_conditions(
+            text,
+            entry["start"],
+            entry["end"],
+            block_conditions,
+        )
         measurement: dict[str, Any] = {
             "raw_value": _plain_text(entry["raw_value"]),
             "raw_units": _plain_text(entry["raw_units"]),
@@ -796,9 +1015,14 @@ def extract_mobility_measurements(
             "span": {"start": entry["start"], "end": entry["end"], "text": entry["span_text"]},
             "determination": _determination(claim_clause, local_methods, local_algorithms),
             "source_relation": source_relation,
+            "condition_coverage": condition_coverage,
         }
         if source_relation_evidence:
             measurement["source_relation_evidence"] = source_relation_evidence
+        if document_locators:
+            measurement["document_locators"] = document_locators
+        if condition_records:
+            measurement["condition_records"] = condition_records
         measurement.update(_quantity_semantics(text, entry["start"], entry["end"]))
         regime = _measurement_regime(text, entry["start"], entry["end"])
         if regime:
@@ -874,11 +1098,44 @@ def extract_mobility_measurements(
             review_flags.append("multiple_directions_unaligned")
         if carrier_ambiguous:
             review_flags.append("multiple_carriers_unaligned")
+        review_flags.extend(condition_review_flags)
         if review_flags:
             measurement["review_flags"] = review_flags
         measurements.append(measurement)
 
     return measurements
+
+
+def refresh_measurement_review_status(measurement: dict[str, Any]) -> str:
+    """Summarize review flags as an actionable measurement-level state."""
+    flags = _unique(measurement.get("review_flags", []))
+    if flags:
+        measurement["review_flags"] = flags
+    else:
+        measurement.pop("review_flags", None)
+
+    reasons = list(flags)
+    if measurement.get("source_relation") == "unspecified":
+        reasons.append("source_relation_unspecified")
+    reasons = _unique(reasons)
+    blocking = any(
+        flag in BLOCKING_REVIEW_FLAGS
+        or flag.endswith("_not_aligned")
+        or flag.endswith("_ambiguous")
+        for flag in flags
+    )
+    if blocking:
+        status = "BLOCKED"
+    elif reasons:
+        status = "REVIEW"
+    else:
+        status = "READY"
+    measurement["review_status"] = status
+    if reasons:
+        measurement["review_status_reasons"] = reasons
+    else:
+        measurement.pop("review_status_reasons", None)
+    return status
 
 
 def extract_mobility_fields(text: str) -> dict[str, Any] | None:
@@ -889,12 +1146,14 @@ def extract_mobility_fields(text: str) -> dict[str, Any] | None:
     methods = _extract_named_matches(text, EXPERIMENTAL_METHODS)
     algorithms = _extract_named_matches(text, COMPUTATIONAL_ALGORITHMS)
     analysis_models = _extract_named_matches(text, ANALYSIS_MODELS)
+    block_conditions = _condition_matches(text)
     measurements = extract_mobility_measurements(
         text,
         methods=methods,
         algorithms=algorithms,
         analysis_models=analysis_models,
     )
+    document_locators = _document_locator_matches(text)
 
     if not measurements and not methods and not algorithms:
         return None
@@ -904,16 +1163,64 @@ def extract_mobility_fields(text: str) -> dict[str, Any] | None:
     if materials:
         fields["materials"] = materials
     if measurements:
+        if document_locators:
+            for measurement in measurements:
+                if not measurement.get("document_locators"):
+                    measurement.setdefault("review_flags", []).append("document_locator_unaligned")
         if not materials:
             for measurement in measurements:
                 measurement.setdefault("review_flags", []).append("material_unresolved")
         elif len(materials) == 1:
             for measurement in measurements:
                 measurement["material_refs"] = [0]
+                conditions = measurement.setdefault("condition_records", [])
+                conditions.append(
+                    {
+                        "field": "material_identity",
+                        "value": materials[0]["material"],
+                        "raw_text": materials[0]["raw_text"],
+                        "span": dict(materials[0]["span"]),
+                        "binding_scope": "material",
+                        "material_refs": [0],
+                        "review_flags": [],
+                    }
+                )
+                for coverage in measurement["condition_coverage"]:
+                    if coverage["field"] == "material_identity":
+                        coverage.update(
+                            {"status": "reported", "condition_refs": [len(conditions) - 1]}
+                        )
         elif len(materials) > 1:
             for measurement in measurements:
                 measurement.setdefault("review_flags", []).append("multiple_materials_unaligned")
+                measurement.setdefault("review_flags", []).append("material_identity_ambiguous")
+                for coverage in measurement["condition_coverage"]:
+                    if coverage["field"] == "material_identity":
+                        coverage["status"] = "ambiguous"
         fields["mobilities"] = measurements
+        bound_condition_spans = {
+            (condition["span"]["start"], condition["span"]["end"], condition["field"])
+            for measurement in measurements
+            for condition in measurement.get("condition_records", [])
+        }
+        unbound_conditions = [
+            {
+                **condition,
+                "binding_scope": "document",
+                "review_flags": ["not_bound_to_measurement"],
+            }
+            for condition in block_conditions
+            if (
+                condition["span"]["start"],
+                condition["span"]["end"],
+                condition["field"],
+            )
+            not in bound_condition_spans
+        ]
+        if unbound_conditions:
+            fields["condition_candidates"] = unbound_conditions
+    if document_locators:
+        fields["document_locators"] = document_locators
     if methods:
         fields["measurement_methods"] = [
             {"method": item["name"], "raw_text": item["raw_text"], "span": item["span"]}
@@ -929,16 +1236,59 @@ def extract_mobility_fields(text: str) -> dict[str, Any] | None:
             {"model": item["name"], "raw_text": item["raw_text"], "span": item["span"]}
             for item in analysis_models
         ]
+    for measurement in measurements:
+        refresh_measurement_review_status(measurement)
     return fields
+
+
+def _source_evidence_ref(source: dict[str, Any], span: dict[str, Any]) -> dict[str, Any]:
+    evidence_ref = {
+        "source_id": source.get("id"),
+        "source_kind": source.get("kind"),
+        "span": dict(span),
+    }
+    for key in (
+        "page", "paragraph_index", "block_index", "element_type",
+        "doi", "doi_source", "document_title",
+    ):
+        if source.get(key) is not None:
+            evidence_ref[key] = source[key]
+    return evidence_ref
+
+
+def _normalized_condition(condition: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(condition)
+    normalized["evidence_refs"] = [_source_evidence_ref(source, condition["span"])]
+    return normalized
 
 
 def normalized_mobility_item(source: dict[str, Any], evidence_text: str, fields: dict[str, Any]) -> dict[str, Any]:
     """Build a stable, evidence-first record for a candidate text block."""
+    record_fields = dict(fields)
+    if fields.get("condition_candidates"):
+        record_fields["condition_candidates"] = [
+            _normalized_condition(condition, source)
+            for condition in fields["condition_candidates"]
+        ]
+    if fields.get("mobilities"):
+        mobilities = []
+        for measurement in fields["mobilities"]:
+            normalized_measurement = dict(measurement)
+            normalized_measurement["evidence_refs"] = [
+                _source_evidence_ref(source, measurement["span"])
+            ]
+            if measurement.get("condition_records"):
+                normalized_measurement["condition_records"] = [
+                    _normalized_condition(condition, source)
+                    for condition in measurement["condition_records"]
+                ]
+            mobilities.append(normalized_measurement)
+        record_fields["mobilities"] = mobilities
     return {
         "schema_version": "mobility_miner/0.1",
         "record_type": "charge_carrier_mobility",
         "source": source,
-        "fields": fields,
+        "fields": record_fields,
         "evidence_text": evidence_text,
         "passes_mobility_filter": bool(fields.get("mobilities")),
         "extraction_method": "mobility_evidence_heuristic",
