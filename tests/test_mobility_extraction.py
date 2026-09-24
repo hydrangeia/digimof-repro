@@ -240,6 +240,32 @@ def test_review_status_distinguishes_ready_review_and_blocked_measurements():
     assert "BLOCKED" in render_html_report([record])
 
 
+def test_html_report_counts_and_searches_measurement_review_statuses():
+    texts = [
+        "In this work, Pentacene exhibits a field-effect mobility of 1.2 cm2 V-1 s-1.",
+        "Pentacene exhibits a field-effect mobility of 1.2 cm2 V-1 s-1.",
+        "In this work, the Hall mobility was 1.2 cm2 V-1 s-1.",
+    ]
+    records = []
+    for index, text in enumerate(texts):
+        fields = extract_mobility_fields(text)
+        assert fields is not None
+        records.append(
+            normalized_mobility_item(
+                {"id": "status-{}.pdf".format(index), "kind": "pdf"},
+                text,
+                fields,
+            )
+        )
+
+    report = render_html_report(records)
+
+    assert "<strong>1</strong>ready" in report
+    assert "<strong>1</strong>review" in report
+    assert "<strong>1</strong>blocked" in report
+    assert "source_relation_unspecified" in report
+
+
 def test_each_normalized_measurement_carries_its_source_locator_and_exact_span():
     text = "Figure 3C displays a mobility of 13 cm2 V-1 s-1."
     fields = extract_mobility_fields(text)

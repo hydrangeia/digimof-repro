@@ -285,6 +285,11 @@ decision. Page-level condition linking refreshes the status after it adds or
 removes alignment flags, and the HTML report surfaces the status beside the
 underlying flags.
 
+Report summary counts and search now use `review_status` and
+`review_status_reasons` directly. This prevents a provenance-only `REVIEW`
+record from disappearing from the review queue merely because it has no legacy
+`review_flags`; the report exposes separate ready, review, and blocked totals.
+
 ## ChemDataExtractor 2 decision
 
 ChemDataExtractor 2 is promising for the next layer. Its official project lists

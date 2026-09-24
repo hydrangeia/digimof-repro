@@ -127,7 +127,24 @@ def _render_record(record: dict[str, Any], index: int) -> str:
     methods = [item.get("method") for item in fields.get("measurement_methods", []) if item.get("method")]
     algorithms = [item.get("algorithm") for item in fields.get("computational_algorithms", []) if item.get("algorithm")]
     analysis_models = [item.get("model") for item in fields.get("analysis_models", []) if item.get("model")]
-    search_text = " ".join(materials + methods + algorithms + analysis_models + [record.get("evidence_text", ""), source.get("id", "")]).lower()
+    review_terms = [
+        term
+        for measurement in measurements
+        for term in (
+            [measurement.get("review_status")]
+            + measurement.get("review_status_reasons", [])
+            + measurement.get("review_flags", [])
+        )
+        if term
+    ]
+    search_text = " ".join(
+        materials
+        + methods
+        + algorithms
+        + analysis_models
+        + review_terms
+        + [record.get("evidence_text", ""), source.get("id", "")]
+    ).lower()
     rows = "".join(_render_measurement(measurement) for measurement in measurements)
     if not rows:
         rows = '<tr><td colspan="6" class="muted">Method or algorithm mention only; no normalized value was found.</td></tr>'
@@ -162,7 +179,14 @@ def render_html_report(records: Iterable[dict[str, Any]], title: str = "Mobility
     source_count = len({record.get("source", {}).get("id", "unknown") for record in records})
     experimental = sum(1 for item in measurements if item.get("determination") == "experimental")
     computational = sum(1 for item in measurements if item.get("determination") == "computational")
-    unresolved = sum(1 for item in measurements if item.get("review_flags"))
+    statuses = [
+        item.get("review_status")
+        or ("REVIEW" if item.get("review_flags") else "READY")
+        for item in measurements
+    ]
+    ready = statuses.count("READY")
+    review = statuses.count("REVIEW")
+    blocked = statuses.count("BLOCKED")
     record_html = "".join(_render_record(record, index) for index, record in enumerate(records, 1))
     if not record_html:
         record_html = '<p class="empty">No mobility evidence records were extracted.</p>'
@@ -178,11 +202,12 @@ def render_html_report(records: Iterable[dict[str, Any]], title: str = "Mobility
 .toolbar{{position:sticky;top:0;padding:12px clamp(16px,4vw,46px);background:#f4f7f9ee;border-bottom:1px solid var(--line)}}input{{width:min(680px,100%);padding:9px;border:1px solid var(--line);border-radius:6px}}
 main{{padding:18px clamp(16px,4vw,46px) 48px}}.record{{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:16px;margin-bottom:16px}}.record header{{display:flex;justify-content:space-between;gap:12px}}h2{{margin:3px 0;font-size:20px}}.source,.raw,.muted{{color:var(--muted)}}.eyebrow{{font-size:11px;color:var(--accent);font-weight:bold;text-transform:uppercase}}.count,.badge{{display:inline-block;border-radius:999px;padding:3px 7px;background:var(--soft);margin:2px 4px 2px 0}}.method-strip{{margin:10px 0}}.table-wrap{{overflow-x:auto}}table{{width:100%;border-collapse:collapse;min-width:920px}}th,td{{border-top:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}}th{{color:var(--muted)}}details{{margin-top:10px}}.evidence{{border-left:3px solid var(--accent);padding:10px;background:#f8fafb}}mark{{background:#ffe7a3}}.empty{{color:var(--muted)}}
 </style></head><body><section class="hero"><h1>{title}</h1><p>Evidence-linked charge-carrier mobility values, methods, algorithms, and source relations.</p>{output_note}
-<div class="metrics"><span class="metric"><strong>{records_count}</strong>records</span><span class="metric"><strong>{measurement_count}</strong>values</span><span class="metric"><strong>{source_count}</strong>sources</span><span class="metric"><strong>{experimental}</strong>experimental</span><span class="metric"><strong>{computational}</strong>computational</span><span class="metric"><strong>{unresolved}</strong>flagged</span></div></section>
+<div class="metrics"><span class="metric"><strong>{records_count}</strong>records</span><span class="metric"><strong>{measurement_count}</strong>values</span><span class="metric"><strong>{source_count}</strong>sources</span><span class="metric"><strong>{experimental}</strong>experimental</span><span class="metric"><strong>{computational}</strong>computational</span><span class="metric"><strong>{ready}</strong>ready</span><span class="metric"><strong>{review}</strong>review</span><span class="metric"><strong>{blocked}</strong>blocked</span></div></section>
 <section class="toolbar"><input id="search" type="search" placeholder="Search material, method, source, or evidence"></section><main>{records}</main>
 <script>const q=document.getElementById('search'),rs=[...document.querySelectorAll('.record')];q.addEventListener('input',()=>{{const v=q.value.trim().toLowerCase();for(const r of rs)r.hidden=v&&!r.dataset.search.includes(v)}});</script></body></html>""".format(
         title=escape(title), output_note=output_note, records_count=len(records), measurement_count=len(measurements), source_count=source_count,
-        experimental=experimental, computational=computational, unresolved=unresolved, records=record_html,
+        experimental=experimental, computational=computational,
+        ready=ready, review=review, blocked=blocked, records=record_html,
     )
 
 
