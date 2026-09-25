@@ -79,9 +79,15 @@ QUANTITY_RE = re.compile(
 PAIRED_QUANTITY_RE = re.compile(
     r"(?P<paired_value1>"
     + NUMBER
-    + r")\s*(?:,\s*|\band\b\s+)(?P<paired_value2>"
+    + r")"
+    r"(?:\s*(?:\u00b1|\+/-)\s*(?P<paired_uncertainty1>"
     + NUMBER
-    + r")\s*(?P<paired_raw_units>"
+    + r"))?\s*(?:,\s*|\band\b\s+)(?P<paired_value2>"
+    + NUMBER
+    + r")"
+    r"(?:\s*(?:\u00b1|\+/-)\s*(?P<paired_uncertainty2>"
+    + NUMBER
+    + r"))?\s*(?P<paired_raw_units>"
     + MOBILITY_UNIT.replace("?P<length_unit>", "?P<paired_length_unit>")
     + r")",
     flags=re.I,
@@ -887,19 +893,24 @@ def _quantity_entries(text: str) -> list[dict[str, Any]]:
     paired_spans = []
     for match in PAIRED_QUANTITY_RE.finditer(text):
         paired_spans.append((match.start(), match.end()))
-        for group_name in ("paired_value1", "paired_value2"):
+        for group_name, uncertainty_name in (
+            ("paired_value1", "paired_uncertainty1"),
+            ("paired_value2", "paired_uncertainty2"),
+        ):
+            uncertainty = match.group(uncertainty_name)
+            value_end = match.end(uncertainty_name) if uncertainty else match.end(group_name)
             entries.append(
                 {
                     "start": match.start(group_name),
-                    "end": match.end(group_name),
-                    "raw_value": match.group(group_name),
+                    "end": value_end,
+                    "raw_value": _plain_text(text[match.start(group_name) : value_end]),
                     "value1": _parse_number(match.group(group_name)),
                     "value2": None,
-                    "uncertainty": None,
+                    "uncertainty": _parse_number(uncertainty) if uncertainty else None,
                     "comparator": None,
                     "raw_units": match.group("paired_raw_units"),
                     "length_unit": match.group("paired_length_unit"),
-                    "span_text": match.group(group_name),
+                    "span_text": text[match.start(group_name) : value_end],
                     "quantity_span": {
                         "start": match.start(),
                         "end": match.end(),

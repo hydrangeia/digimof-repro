@@ -107,6 +107,27 @@ def test_shared_unit_electron_and_hole_values_are_aligned_in_order():
         assert text[evidence["span"]["start"] : evidence["span"]["end"]] == evidence["raw_text"]
 
 
+def test_shared_unit_values_keep_their_individual_uncertainties():
+    text = (
+        "The electron and hole mobilities are "
+        "120 \u00b1 10 and 80 +/- 5 cm2 V-1 s-1, respectively."
+    )
+
+    measurements = _measurements(text)
+
+    assert [
+        (item["carrier"], item["value"], item["uncertainty"])
+        for item in measurements
+    ] == [
+        ("electron", 120.0, 10.0),
+        ("hole", 80.0, 5.0),
+    ]
+    for item in measurements:
+        span = item["span"]
+        assert text[span["start"] : span["end"]] == span["text"]
+        assert "\u00b1" in span["text"] or "+/-" in span["text"]
+
+
 def test_separate_unit_values_use_nearest_carrier():
     text = (
         "The mobilities are 1200 cm^2 V^-1 s^-1 for electrons and "

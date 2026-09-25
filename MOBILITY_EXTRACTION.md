@@ -17,6 +17,8 @@ be checked against the paper before it is used as a label or manuscript claim.
   carrier evidence keeps an exact span, while multi-carrier claims require
   clause separation, unambiguous nearest-value linkage, or explicit
   `respectively` alignment and otherwise receive a review flag;
+- shared-unit carrier pairs preserve each value's explicitly reported
+  uncertainty inside that measurement's exact evidence span;
 - temperature and crystallographic/in-plane direction when explicit;
 - temperature is assigned only from the value's own contrast/semicolon clause;
   multiple temperatures in one clause remain unaligned and receive a review flag;
