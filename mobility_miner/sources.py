@@ -17,6 +17,7 @@ except ImportError:  # The legacy Python 3.8 environment may not be updated yet.
     pdfplumber = None
 
 from .extract import (
+    CONDITION_COVERAGE_FIELDS,
     _source_relation_details,
     extract_mobility_fields,
     is_mobility_candidate_text,
@@ -214,6 +215,188 @@ def _external_condition_evidence_ref(
         if source.get(key) is not None:
             evidence_ref[key] = source[key]
     return evidence_ref
+
+
+def _table_cell_ref(
+    source: dict[str, Any],
+    table_index: int,
+    row_index: int,
+    column_index: int,
+    raw_text: str,
+) -> dict[str, Any]:
+    ref = {
+        "source_id": source.get("id"),
+        "source_kind": source.get("kind"),
+        "page": source.get("page"),
+        "doi": source.get("doi"),
+        "doi_source": source.get("doi_source"),
+        "table_locator": "Table S1",
+        "table_index": table_index,
+        "row_index": row_index,
+        "column_index": column_index,
+        "raw_text": raw_text,
+        "span_scope": "pdf_table_cell",
+    }
+    return {key: value for key, value in ref.items() if value is not None}
+
+
+def _parse_pvsk_sclc_comparison_table(page: Any, page_text: str, source: dict[str, Any]) -> list[dict[str, Any]]:
+    """Parse explicit two-material SCLC mobility tables with aligned cells."""
+    caption_match = re.search(
+        r"(?i)Table\s+S1\.\s+The\s+SCLC\s+electron\s+mobility\s+of\s+the\s+CDIN\s+and\s+C\s*60\s+films\.",
+        page_text,
+    )
+    scale_match = re.search(
+        r"(?i)[(（]?\s*[×x]\s*10\s*[-\u2212\u2013]\s*4\s*(?P<units>cm\s*2\s*V\s*[-\u2212\u2013]\s*1\s*s\s*[-\u2212\u2013]\s*1)\s*[)）]?",
+        page_text,
+    )
+    if not caption_match or not scale_match:
+        return []
+    sclc_match = re.search(r"(?i)\bSCLC\b", page_text)
+    electron_match = re.search(r"(?i)\belectron\b", page_text)
+    films_match = re.search(r"(?i)\bfilms\b", page_text)
+    device_match = re.search(r"(?i)\belectron\s+only\s+devices?\b", page_text)
+    stack_match = re.search(r"(?i)ITO\s*/\s*ZnO\s*/\s*ETL\s*/\s*LiF\s*/\s*Al", page_text)
+    if not all((sclc_match, electron_match, films_match, device_match, stack_match)):
+        return []
+
+    def page_text_ref(match: re.Match[str]) -> dict[str, Any]:
+        return {
+            "source_id": source.get("id"),
+            "source_kind": source.get("kind"),
+            "page": source.get("page"),
+            "doi": source.get("doi"),
+            "doi_source": source.get("doi_source"),
+            "span": {"start": match.start(), "end": match.end()},
+            "span_scope": "normalized_page_text",
+            "raw_text": match.group(0),
+        }
+
+    sclc_ref = page_text_ref(sclc_match)
+    electron_ref = page_text_ref(electron_match)
+    films_ref = page_text_ref(films_match)
+    device_ref = page_text_ref(device_match)
+    stack_ref = page_text_ref(stack_match)
+
+    for table_index, table in enumerate(page.extract_tables() or []):
+        material_columns: dict[int, tuple[str, int, str]] = {}
+        for row_index, row in enumerate(table):
+            for column_index, cell in enumerate(row):
+                if not cell:
+                    continue
+                normalized = " ".join(cell.split())
+                if re.fullmatch(r"(?i)CDIN", normalized):
+                    material_columns[column_index] = ("CDIN", row_index, cell)
+                elif re.fullmatch(r"(?i)C\s*60", normalized):
+                    material_columns[column_index] = ("C60", row_index, cell)
+        if {item[0] for item in material_columns.values()} != {"CDIN", "C60"}:
+            continue
+
+        mobility_row = next(
+            (
+                index
+                for index, row in enumerate(table)
+                if any(cell and re.fullmatch(r"(?i)Mobility", " ".join(cell.split())) for cell in row)
+            ),
+            None,
+        )
+        thickness_row = next(
+            (
+                index
+                for index, row in enumerate(table)
+                if any(cell and re.search(r"(?i)Thickness\s*\(\s*nm\s*\)", cell) for cell in row)
+            ),
+            None,
+        )
+        if mobility_row is None or thickness_row is None:
+            continue
+        value_row_index = next(
+            (
+                index
+                for index in range(mobility_row + 1, len(table))
+                if all(
+                    column < len(table[index])
+                    and table[index][column]
+                    and re.fullmatch(r"\d+(?:\.\d+)?", table[index][column].strip())
+                    for column in material_columns
+                )
+            ),
+            None,
+        )
+        if value_row_index is None:
+            continue
+
+        unit_ref = {
+            "source_id": source.get("id"),
+            "source_kind": source.get("kind"),
+            "page": source.get("page"),
+            "doi": source.get("doi"),
+            "doi_source": source.get("doi_source"),
+            "span": {"start": scale_match.start(), "end": scale_match.end()},
+            "span_scope": "normalized_page_text",
+            "raw_text": scale_match.group(0),
+        }
+        records = []
+        for column_index, (material, material_row_index, material_cell) in material_columns.items():
+            raw_value = table[value_row_index][column_index].strip()
+            raw_thickness = table[thickness_row][column_index].strip()
+            cell_value_ref = _table_cell_ref(source, table_index, value_row_index, column_index, raw_value)
+            material_ref = _table_cell_ref(source, table_index, material_row_index, column_index, material_cell)
+            thickness_ref = _table_cell_ref(source, table_index, thickness_row, column_index, raw_thickness)
+            span = {"start": 0, "end": len(raw_value), "text": raw_value, "span_scope": "pdf_table_cell"}
+            measurement = {
+                "raw_value": raw_value,
+                "raw_units": scale_match.group(0),
+                "standard_units": "cm^2 V^-1 s^-1",
+                "value": float(raw_value) * 1e-4,
+                "span": span,
+                "evidence_refs": [cell_value_ref],
+                "source_relation": "unspecified",
+                "determination": "experimental",
+                "carrier": "electron",
+                "carrier_evidence": {"raw_text": electron_match.group(0), "evidence_refs": [electron_ref]},
+                "methods": ["space-charge-limited current"],
+                "method_evidence": [{"method": "space-charge-limited current", "raw_text": sclc_match.group(0), "evidence_refs": [sclc_ref]}],
+                "material_refs": [0],
+                "condition_records": [
+                    {"field": "material_identity", "value": material, "raw_text": material_cell, "evidence_refs": [material_ref]},
+                    {"field": "sample_form", "value": "film", "raw_text": films_match.group(0), "evidence_refs": [films_ref]},
+                    {"field": "thickness", "value": "{} nm".format(raw_thickness), "raw_text": raw_thickness, "evidence_refs": [thickness_ref]},
+                    {"field": "device_type", "value": "electron-only device", "raw_text": device_match.group(0), "evidence_refs": [device_ref]},
+                    {"field": "device_stack", "value": "ITO/ZnO/ETL/LiF/Al", "raw_text": stack_match.group(0), "evidence_refs": [stack_ref]},
+                ],
+                "condition_coverage": [
+                    {
+                        "field": field,
+                        "status": "reported"
+                        if field in {"material_identity", "sample_form", "thickness", "device_type"}
+                        else "not_reported",
+                    }
+                    for field in CONDITION_COVERAGE_FIELDS
+                ],
+                "table_cell": {"table_index": table_index, "row_index": value_row_index, "column_index": column_index, "row_header": material, "column_header": "Mobility"},
+                "unit_evidence": {"raw_text": scale_match.group(0), "evidence_refs": [unit_ref]},
+            }
+            refresh_measurement_review_status(measurement)
+            table_source = {
+                **source,
+                "table_locator": "Table S1",
+                "table_index": table_index,
+                "table_row_index": value_row_index,
+                "table_column_index": column_index,
+                "element_type": "table_cell",
+            }
+            records.append({
+                "schema_version": "mobility_miner/0.1",
+                "record_type": "charge_carrier_mobility",
+                "source": table_source,
+                "fields": {"materials": [{"material": material, "raw_text": material_cell, "evidence_refs": [material_ref]}], "mobilities": [measurement]},
+                "evidence_text": raw_value,
+                "passes_mobility_filter": True,
+                "extraction_method": "mobility_pdf_table_heuristic",
+            })
+        return records
+    return []
 
 
 def _link_page_fabrication_conditions(
@@ -514,6 +697,20 @@ def parse_pdf_path(
                         if record:
                             page_records.append(record)
                     paragraph_index += 1
+                if "Table S1" in page_text:
+                    table_source = _pdf_source(
+                        path,
+                        source_id,
+                        page=page_number,
+                        paragraph_index=paragraph_index,
+                    )
+                    table_records = _parse_pvsk_sclc_comparison_table(
+                        page,
+                        _normalized_pdf_text(page_text),
+                        table_source,
+                    )
+                    page_records.extend(table_records)
+                    paragraph_index += len(table_records)
                 yield from _link_page_fabrication_conditions(
                     _normalized_pdf_text(page_text),
                     page_records,

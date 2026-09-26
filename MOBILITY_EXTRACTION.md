@@ -264,6 +264,15 @@ therefore retained with page, paragraph, DOI, and exact span but marked
 statements such as a generic thickness for “our samples” are likewise not
 propagated without a stronger sample-identity link.
 
+For the explicit PVSK supplementary Table S1 headed as SCLC electron mobility
+of CDIN and C60 films, PDF table cells are aligned by their shared material
+columns. The extracted rows bind 52.4 and 31.6 to CDIN and C60, respectively,
+apply the printed ×10⁻⁴ cm² V⁻¹ s⁻¹ scale, and link 93/96 nm thicknesses through
+the same columns. Value, material, thickness, unit, and caption evidence each
+retain a page plus table-cell or text-span reference. The device stack and
+electron-only device wording are separately cited to their own caption spans;
+provenance stays `unspecified` and the records remain `REVIEW`.
+
 The COF gold case also covers a material stated after the number: “effective
 mobility ... 200 ... for PI-DY2DP”. The narrow post-value `for <material>`
 pattern records PI-DY2DP with an exact span and binds it to the single value;

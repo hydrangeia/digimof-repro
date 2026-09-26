@@ -307,6 +307,45 @@ class RealMobilityCorpusTests(unittest.TestCase):
             )
         )
 
+    def test_perovskite_sclc_table_rows_bind_material_value_and_thickness(self):
+        try:
+            from mobility_miner.sources import parse_pdf_path
+        except ImportError as error:
+            raise unittest.SkipTest("mobility source dependencies unavailable: {}".format(error))
+
+        path = DATA_ROOT / "PVSK/10.1002_adma.201601745.pdf"
+        records = [
+            record
+            for record in parse_pdf_path(path, pages=35)
+            if record["source"].get("table_locator") == "Table S1"
+        ]
+
+        self.assertEqual(2, len(records))
+        by_material = {record["fields"]["materials"][0]["material"]: record for record in records}
+        self.assertEqual({"CDIN", "C60"}, set(by_material))
+        expected = {"CDIN": (0.00524, "93 nm"), "C60": (0.00316, "96 nm")}
+        for material, (value, thickness) in expected.items():
+            record = by_material[material]
+            measurement = record["fields"]["mobilities"][0]
+            self.assertAlmostEqual(value, measurement["value"])
+            self.assertEqual("52.4" if material == "CDIN" else "31.6", measurement["raw_value"])
+            self.assertEqual("cm^2 V^-1 s^-1", measurement["standard_units"])
+            self.assertEqual("electron", measurement["carrier"])
+            self.assertEqual(["space-charge-limited current"], measurement["methods"])
+            self.assertEqual("REVIEW", measurement["review_status"])
+            conditions = {item["field"]: item for item in measurement["condition_records"]}
+            self.assertEqual(thickness, conditions["thickness"]["value"])
+            self.assertEqual("pdf_table_cell", conditions["thickness"]["evidence_refs"][0]["span_scope"])
+            self.assertEqual("electron only devices", conditions["device_type"]["evidence_refs"][0]["raw_text"])
+            self.assertEqual("ITO/ZnO/ETL/LiF/Al", conditions["device_stack"]["evidence_refs"][0]["raw_text"])
+            self.assertEqual(35, measurement["evidence_refs"][0]["page"])
+            self.assertEqual("10.1002/adma.201601745", measurement["evidence_refs"][0]["doi"])
+            span = measurement["span"]
+            self.assertEqual(
+                measurement["raw_value"],
+                record["evidence_text"][span["start"] : span["end"]],
+            )
+
     def test_osm_device_conditions_bind_locally_and_wrong_panel_bias_is_blocked(self):
         try:
             from mobility_miner.sources import parse_pdf_path
