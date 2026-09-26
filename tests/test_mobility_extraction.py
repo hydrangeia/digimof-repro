@@ -179,6 +179,14 @@ def test_method_only_candidate_is_retained_but_does_not_pass_value_filter():
     assert record["passes_mobility_filter"] is False
 
 
+def test_shared_table_scale_exponent_is_not_a_mobility_value():
+    text = "Table S1 reports mobility values 52.4 and 31.6 (\u00d710-4 cm2 V-1 s-1)."
+
+    fields = extract_mobility_fields(text)
+
+    assert fields is None
+
+
 def test_generic_transport_text_is_not_a_mobility_candidate():
     assert not is_mobility_candidate_text("The conductivity increased after iodine doping.")
     assert extract_mobility_fields("The conductivity increased after iodine doping.") is None

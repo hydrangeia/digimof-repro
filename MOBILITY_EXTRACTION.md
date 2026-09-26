@@ -19,6 +19,8 @@ be checked against the paper before it is used as a label or manuscript claim.
   `respectively` alignment and otherwise receive a review flag;
 - shared-unit carrier pairs preserve each value's explicitly reported
   uncertainty inside that measurement's exact evidence span;
+- a PDF-extracted shared scale such as `×10-4 cm2...` cannot turn its exponent
+  into a stand-alone mobility value;
 - temperature and crystallographic/in-plane direction when explicit;
 - temperature is assigned only from the value's own contrast/semicolon clause;
   multiple temperatures in one clause remain unaligned and receive a review flag;

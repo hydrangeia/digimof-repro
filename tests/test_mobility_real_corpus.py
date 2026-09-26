@@ -227,6 +227,7 @@ class RealMobilityCorpusTests(unittest.TestCase):
                 for condition in measurement.get("condition_records", [])
             )
         )
+
         sample_coverage = {
             item["field"]: item["status"]
             for item in measurement["condition_coverage"]
@@ -279,6 +280,32 @@ class RealMobilityCorpusTests(unittest.TestCase):
         }
         self.assertEqual("not_reported", coverage["material_identity"])
         self.assertEqual("not_reported", coverage["sample_form"])
+
+    def test_perovskite_table_scale_exponent_is_not_reported_as_a_value(self):
+        try:
+            from mobility_miner.sources import parse_pdf_path
+        except ImportError as error:
+            raise unittest.SkipTest("mobility source dependencies unavailable: {}".format(error))
+
+        path = DATA_ROOT / "PVSK/10.1002_adma.201601745.pdf"
+        records = [
+            record
+            for record in parse_pdf_path(path, pages=35)
+            if record["source"].get("page") == 35
+        ]
+        measurements = [
+            measurement
+            for record in records
+            for measurement in record.get("fields", {}).get("mobilities", [])
+        ]
+
+        self.assertFalse(
+            any(
+                measurement.get("value") == 4.0
+                and "cm2" in measurement.get("raw_units", "")
+                for measurement in measurements
+            )
+        )
 
     def test_osm_device_conditions_bind_locally_and_wrong_panel_bias_is_blocked(self):
         try:

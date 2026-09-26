@@ -922,6 +922,11 @@ def _quantity_entries(text: str) -> list[dict[str, Any]]:
     for match in QUANTITY_RE.finditer(text):
         if any(start <= match.start() and match.end() <= end for start, end in paired_spans):
             continue
+        exponent_prefix = text[max(0, match.start() - 12) : match.start()]
+        if re.search(r"(?i)(?:[x\u00d7]\s*)10\s*(?:\^\s*)?[-\u2212\u2013\u2014]\s*$", exponent_prefix):
+            # PDF text extraction can split a shared scale such as
+            # ``(×10-4 cm2...)`` and mistake its exponent for a mobility value.
+            continue
         entries.append(
             {
                 "start": match.start(),
